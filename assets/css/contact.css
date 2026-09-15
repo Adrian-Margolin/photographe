@@ -1,0 +1,199 @@
+/* =========================================================
+   contact.css — page Contact (sobre, claire, uniquement la photo)
+   ========================================================= */
+
+.about-grid{
+  display:grid;
+  grid-template-columns: 1.2fr .8fr;
+  gap: 72px;
+  padding: 56px 0 80px;
+}
+
+.about-grid h2{
+  font-size: 1.3rem;
+  font-weight: 500;
+  margin: 40px 0 18px;
+}
+.about-grid h2:first-child{ margin-top: 0; }
+
+.about-grid .body-text p{ color: var(--ink-soft); }
+
+.pill-row{
+  display:flex;
+  flex-wrap:wrap;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.pill{
+  border: 1px solid var(--paper-line);
+  padding: 6px 13px;
+  font-size: .82rem;
+  color: var(--ink-soft);
+}
+
+.timeline{
+  border-left: 1px solid var(--paper-line);
+  padding-left: 24px;
+}
+
+.tl-item{ margin-bottom: 24px; position:relative; }
+.tl-item::before{
+  content:"";
+  position:absolute;
+  left: -29px; top: 6px;
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--ink);
+}
+.tl-year{
+  font-family: var(--font-body);
+  font-size: .78rem;
+  color: var(--stone);
+  font-weight: 500;
+  margin-bottom: 3px;
+}
+.tl-title{ font-weight: 500; }
+.tl-desc{ font-size: .9rem; color: var(--stone); margin-top: 2px; }
+
+.distinction{ margin-bottom: 4px; }
+
+@media (max-width: 860px){
+  .about-grid{ grid-template-columns: 1fr; gap: 16px; }
+}
+
+/* ---------- Contact ---------- */
+.contact-section{
+  border-top: 1px solid var(--paper-line);
+  padding-top: 72px;
+  padding-bottom: 88px;
+}
+
+.contact-solo{
+  display:grid;
+  grid-template-columns: 340px 1fr;
+  gap: 56px;
+  align-items: center;
+}
+
+.contact-solo h2{
+  font-size: clamp(1.5rem, 3vw, 1.9rem);
+  font-weight: 500;
+}
+
+.contact-solo .lede{
+  color: var(--stone);
+  margin-top: 14px;
+  max-width: 46ch;
+}
+
+.contact-list{
+  list-style:none;
+  margin: 28px 0 0; padding:0;
+  font-size: .98rem;
+  max-width: 420px;
+}
+.contact-list li{
+  padding: 13px 0;
+  border-top: 1px solid var(--paper-line);
+  display:flex;
+  justify-content:space-between;
+  gap: 20px;
+}
+.contact-list li:last-child{ border-bottom: 1px solid var(--paper-line); }
+.contact-list span.label{ color: var(--stone); font-size: .84rem; }
+
+@media (max-width: 720px){
+  .contact-solo{ grid-template-columns: 1fr; gap: 28px; }
+}
+
+/* ---------- Page "Sur moi" ---------- */
+.apropos-head{
+  display:grid;
+  grid-template-columns: 220px 1fr;
+  gap: 40px;
+  align-items:center;
+  padding-top: 48px;
+  padding-bottom: 20px;
+}
+
+.apropos-portrait img{
+  width:100%;
+  aspect-ratio: 3/4;
+  object-fit: cover;
+  border-radius: 14px;
+}
+
+.apropos-head h1{ font-size: clamp(1.25rem, 2.1vw, 1.55rem); font-weight:500; margin-top:8px; line-height:1.35; }
+
+@media (max-width: 640px){
+  .apropos-head{ grid-template-columns: 140px 1fr; gap: 22px; }
+}
+
+/* ---------- Lectures ---------- */
+.reading-list{
+  list-style:none;
+  margin:0; padding:0;
+  columns: 2 220px;
+  column-gap: 28px;
+  font-size: .92rem;
+  color: var(--ink-soft);
+  line-height: 1.6;
+}
+.reading-list li{
+  break-inside: avoid;
+  padding: 7px 0;
+  border-top: 1px solid var(--paper-line);
+}
+
+.reading-wrap{
+  position: relative;
+  max-height: 460px;
+  overflow: hidden;
+}
+
+.reading-wrap.is-expanded{ max-height: none; }
+
+.reading-wrap .reading-fade{
+  position: absolute;
+  left:0; right:0; bottom:0;
+  height: 70px;
+  background: linear-gradient(to bottom, rgba(243,243,241,0), var(--bone));
+  pointer-events: none;
+}
+
+.reading-wrap.is-expanded .reading-fade{ display:none; }
+
+@media (max-width: 640px){
+  .reading-list{ columns: 1; }
+}
+
+/* ---------- Texte simple "Sur moi" (sans titre) ---------- */
+.apropos-text p{
+  color: var(--ink-soft);
+  font-size: 1.02rem;
+  max-width: 56ch;
+}
+.apropos-text p:first-child{ margin-bottom: 14px; }
+
+/* ---------- Bouton "voir toute la liste" : blanc, arrondi ---------- */
+#reading-toggle{
+  display: inline-block;
+  margin-top: 16px;
+  padding: 10px 22px;
+  background: #fff;
+  border: 1px solid var(--paper-line);
+  border-radius: 999px;
+  box-shadow: 0 1px 3px rgba(0,0,0,.08);
+  font-size: .88rem;
+  color: var(--ink);
+}
+#reading-toggle:hover{ box-shadow: 0 2px 6px rgba(0,0,0,.12); border-color: var(--ink); }
+
+/* ---------- Portrait sur Contact ---------- */
+.contact-avatar{
+  width: 100%;
+  aspect-ratio: 3/4;
+  object-fit: cover;
+  border-radius: 18px;
+}

@@ -1,0 +1,201 @@
+/* =========================================================
+   home.css — page d'accueil (sobre, l'image en premier)
+   ========================================================= */
+
+.hero-plate{
+  width: 100%;
+  margin: 0;
+  position: relative;
+  min-height: 640px;
+  background-size: cover;
+  background-position: center 40%;
+  background-color: var(--ink);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+}
+
+.hero-overlay{
+  position: relative;
+  flex: 1;
+  padding: 40px 32px 48px;
+  background: linear-gradient(to top, rgba(15,16,13,.8) 0%, rgba(15,16,13,.58) 55%, rgba(15,16,13,.25) 100%);
+  color: var(--bone);
+}
+
+.hero-overlay > *{
+  max-width: 760px;
+}
+
+.hero-overlay h1{
+  font-size: clamp(1.7rem, 4vw, 2.4rem);
+  font-weight: 500;
+  color: var(--bone);
+}
+
+.hero-overlay .role{
+  margin-top: 0;
+  margin-bottom: 0;
+  font-family: var(--font-body);
+  font-size: 1.85rem;
+  font-weight: 700;
+  line-height: 1.3;
+  color: rgba(243,243,241,.95);
+}
+
+.hero-quote-row{
+  display: flex;
+  align-items: flex-start;
+  gap: 40px;
+  margin-top: 4.81rem;
+  max-width: 760px;
+  width: 100%;
+}
+
+.hero-overlay .epigraph{
+  margin: 0;
+  padding-left: 16px;
+  border-left: 1px solid rgba(243,243,241,.4);
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 1rem;
+  line-height: 1.42;
+  color: var(--bone);
+  flex: 1;
+  max-width: 38ch;
+}
+
+.hero-overlay .epigraph .attrib{
+  display:block;
+  margin-top: 8px;
+  font-family: var(--font-body);
+  font-style: normal;
+  font-size: .76rem;
+  color: rgba(243,243,241,.7);
+}
+
+.hero-portrait{
+  position: absolute;
+  top: 50%;
+  right: 72px;
+  transform: translateY(-50%);
+  width: 325px;
+  height: 403px;
+  object-fit: cover;
+  object-position: 50% 22%;
+  border-radius: 14px;
+}
+
+
+.hero-overlay .bio{
+  margin-top: 16px;
+  color: rgba(243,243,241,.92);
+  max-width: 62ch;
+  font-size: .94rem;
+}
+
+@media (max-width: 640px){
+  .hero-overlay{ padding: 22px 20px 60px; }
+  .hero-overlay .role{ font-size: 1.35rem; }
+  .hero-quote-row{ flex-direction: column-reverse; align-items: flex-start; gap: 12px; margin-top: 3.51rem; }
+  .hero-portrait{ position: static; transform: none; width: 195px; height: 248px; margin: 0; }
+}
+
+/* ---------- Planche contact ---------- */
+.contact-sheet{
+  padding-top: 40px;
+  padding-bottom: 84px;
+  border-top: 1px solid var(--paper-line);
+}
+
+.series-block{ margin-bottom: 34px; }
+.series-block:last-child{ margin-bottom: 0; }
+
+.sheet-scroller{
+  display:flex;
+  gap: 3px;
+  overflow: hidden;
+}
+
+.frame{
+  position: relative;
+  flex: 0 0 auto;
+  width: 220px;
+  aspect-ratio: 3/2;
+  overflow:hidden;
+  background: var(--ink);
+}
+
+.frame img{
+  width:100%; height:100%;
+  object-fit: cover;
+  display:block;
+}
+
+.teaser-viewport{
+  position: relative;
+  overflow: hidden;
+  max-width: 100%;
+}
+
+.teaser-row{
+  text-decoration:none;
+  display:flex;
+  height: 230px;
+  gap: 3px;
+}
+
+.teaser-row .frame{
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: 100%;
+  aspect-ratio: unset;
+  overflow:hidden;
+  background: var(--ink);
+}
+
+.teaser-row .frame img{
+  width:auto; height:100%;
+  object-fit: contain;
+  display:block;
+}
+
+/* Fade over the right edge of the viewport, hinting there's more to see */
+.teaser-fade{
+  position:absolute;
+  top:0; right:0; bottom:0;
+  width: 90px;
+  pointer-events:none;
+  background: linear-gradient(to right, rgba(255,255,255,0) 0%, var(--bone) 92%);
+}
+
+@media (max-width: 640px){
+  .teaser-row{ height: 170px; }
+  .teaser-viewport{ max-width: 100%; }
+}
+
+.frame .fnum{
+  position:absolute;
+  left: 9px; bottom: 7px;
+  font-family: var(--font-body);
+  font-size: .7rem;
+  letter-spacing: .03em;
+  color: rgba(243,243,241,.9);
+  text-shadow: 0 1px 4px rgba(0,0,0,.6);
+}
+
+@media (max-width: 640px){
+  .frame{ width: 158px; }
+}
+
+/* ---------- Ligne de clôture ---------- */
+.closing-line{
+  padding-top: 8px;
+  padding-bottom: 88px;
+  color: var(--ink-soft);
+  font-size: 1.02rem;
+  max-width: 46ch;
+}
+
+.closing-line .link-arrow{ margin-top: 14px; }

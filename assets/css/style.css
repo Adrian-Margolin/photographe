@@ -1,0 +1,352 @@
+/* =========================================================
+   Adrian Margolin — Portfolio photographique
+   style.css : réinitialisation, tokens, typographie, nav, footer
+   ========================================================= */
+
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,400;1,9..144,500&family=IBM+Plex+Sans:wght@400;500;600&display=swap');
+
+:root{
+  /* neutre, classique : le gris très clair porte les images, pas de teinte marketing */
+  --ink:        #141414;
+  --ink-soft:   #33322f;
+  --bone:       #f3f3f1;
+  --bone-dim:   #e5e4e0;
+  --paper-line: #d3d2cd;
+  --stone:      #6a6965;
+  --dusk:       #33456b;
+  --dusk-dim:   #cfd6e4;
+
+  --font-display: 'Fraunces', Georgia, serif;
+  --font-body: 'IBM Plex Sans', -apple-system, sans-serif;
+
+  --measure: 62ch;
+  --nav-h: 68px;
+}
+
+*, *::before, *::after{ box-sizing: border-box; }
+
+figure{ margin: 0; }
+
+html{ scroll-behavior: smooth; }
+
+body{
+  margin:0;
+  background: var(--bone);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+
+@media (prefers-reduced-motion: reduce){
+  html{ scroll-behavior:auto; }
+  *, *::before, *::after{ animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; }
+}
+
+img{ max-width:100%; display:block; }
+
+a{ color:inherit; text-decoration:none; }
+
+h1,h2,h3{
+  font-family: var(--font-display);
+  font-weight: 500;
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+p{ margin: 0 0 1em; max-width: var(--measure); }
+
+:focus-visible{
+  outline: 2px solid var(--dusk);
+  outline-offset: 3px;
+}
+
+.container{
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 0 32px;
+}
+
+@media (max-width: 640px){
+  .container{ padding: 0 20px; }
+}
+
+/* ---------- Navigation ---------- */
+.site-nav{
+  position: relative;
+  height: var(--nav-h);
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding: 0 40px;
+  border-bottom: 1px solid var(--paper-line);
+  background: var(--bone);
+  z-index: 200;
+}
+
+.site-nav .mark{
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+}
+
+.site-nav ul{
+  list-style:none;
+  display:flex;
+  gap: 32px;
+  margin:0; padding:0;
+  font-size: 0.92rem;
+}
+
+.site-nav a{
+  position:relative;
+  padding: 4px 0;
+}
+
+.site-nav a::after{
+  content:"";
+  position:absolute;
+  left:0; right:0; bottom:-2px;
+  height:1px;
+  background: currentColor;
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform .3s ease;
+}
+
+.site-nav a:hover::after,
+.site-nav a[aria-current="page"]::after{
+  transform: scaleX(1);
+}
+
+@media (max-width: 640px){
+  .site-nav{ padding: 0 20px; }
+  .site-nav ul{ gap: 18px; font-size: .84rem; }
+}
+
+/* ---------- Liens d'action ----------
+   Pas de boutons pleins ni de pilules : un lien de texte simple,
+   souligné au survol, comme sur un site d'artiste. */
+.link-arrow{
+  display:inline-flex;
+  align-items:baseline;
+  gap: 8px;
+  font-family: var(--font-body);
+  font-size: .95rem;
+  color: var(--ink);
+  border-bottom: 1px solid var(--ink);
+  padding-bottom: 2px;
+  transition: opacity .2s ease;
+}
+.link-arrow:hover{ opacity: .6; }
+
+.link-arrow-light{
+  color: var(--bone);
+  border-bottom-color: rgba(243,243,241,.6);
+}
+
+/* variante conservée pour la visionneuse : discrète, non pleine */
+.btn-line{
+  display:inline-block;
+  padding: 9px 18px;
+  font-family: var(--font-body);
+  font-size: .86rem;
+  color: var(--ink);
+  border: 1px solid var(--paper-line);
+  border-radius: 999px;
+  transition: border-color .2s ease;
+}
+.btn-line:hover{ border-color: var(--ink); }
+
+/* ---------- Section utilities ---------- */
+.eyebrow-plain{
+  font-family: var(--font-body);
+  font-size: .82rem;
+  color: var(--stone);
+  margin: 0 0 10px;
+}
+
+section{ padding: 96px 0; }
+
+@media (max-width: 720px){
+  section{ padding: 64px 0; }
+}
+
+.section-head{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-end;
+  gap: 24px;
+  margin-bottom: 44px;
+}
+
+hr.rule{
+  border:none;
+  border-top: 1px solid var(--paper-line);
+  margin: 0;
+}
+
+/* ---------- Footer ----------
+   Plat, clair, sans bloc sombre : une ligne de séparation et le nécessaire. */
+.site-footer{
+  border-top: 1px solid var(--paper-line);
+  padding-top: 40px;
+  padding-bottom: 40px;
+  color: var(--stone);
+  font-size: .88rem;
+}
+
+.site-footer .foot-row{
+  display:flex;
+  justify-content:space-between;
+  flex-wrap: wrap;
+  gap: 14px;
+}
+
+.site-footer a:hover{ text-decoration: underline; }
+
+/* ---------- Page header (galerie / contact) ---------- */
+.page-head{
+  padding: 56px 0 48px;
+  border-bottom: 1px solid var(--paper-line);
+}
+
+.page-head h1{
+  font-size: clamp(2.2rem, 5vw, 3.4rem);
+  max-width: 16ch;
+}
+
+.page-head .lede{
+  margin-top: 18px;
+  color: var(--stone);
+  font-size: 1.05rem;
+  max-width: 52ch;
+}
+
+/* ---------- Transition en fondu entre les pages ---------- */
+html.fade-ready{
+  opacity: 0;
+}
+
+html.fade-ready.fade-in{
+  opacity: 1;
+  transition: opacity 260ms ease;
+}
+
+html.fade-ready.fade-out{
+  opacity: 0;
+  transition: opacity 220ms ease;
+}
+
+@media (prefers-reduced-motion: reduce){
+  html.fade-ready{ opacity: 1; transition: none !important; }
+}
+
+/* ---------- Le photographe qui court après le curseur ---------- */
+#cursor-chaser{
+  position: fixed;
+  top: 0; left: 0;
+  width: 46px; height: 74px;
+  z-index: 120;
+  pointer-events: none;
+  background-repeat: no-repeat;
+  background-size: auto 100%;
+  image-rendering: pixelated;
+  will-change: transform;
+  display: none;
+}
+
+#cursor-chaser.is-active{ display: block; }
+
+/* ---------- Bouton "retour en haut" ---------- */
+#back-to-top{
+  position: fixed;
+  right: 28px;
+  bottom: 28px;
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  background: var(--ink);
+  color: var(--bone);
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(10px);
+  transition: opacity .25s ease, transform .25s ease, visibility .25s;
+  z-index: 150;
+  box-shadow: 0 2px 10px rgba(0,0,0,.18);
+}
+
+#back-to-top.is-visible{
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+#back-to-top svg{ width: 18px; height: 18px; }
+
+@media (max-width: 640px){
+  #back-to-top{ right: 16px; bottom: 16px; }
+}
+
+/* ---------- Bascule de langue ---------- */
+.lang-toggle{
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 28px;
+  padding: 5px;
+  border: 1px solid var(--paper-line);
+  border-radius: 999px;
+  font-size: .8rem;
+}
+
+.lang-toggle button{
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  padding: 5px 10px;
+  border-radius: 999px;
+  cursor: pointer;
+  color: var(--stone);
+  font-family: var(--font-body);
+  font-size: .8rem;
+  letter-spacing: .02em;
+}
+
+.lang-toggle .flag{
+  width: 18px;
+  height: 12px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.lang-toggle button.is-active{
+  color: var(--bone);
+  background: var(--ink);
+  font-weight: 600;
+}
+
+.lang-toggle .sep{ display: none; }
+
+.site-nav .nav-right{
+  display: flex;
+  align-items: center;
+}
+
+.nav-links-wrap{
+  display: flex;
+  align-items: center;
+}
+
+@media (max-width: 640px){
+  .lang-toggle{ margin-left: 14px; }
+}

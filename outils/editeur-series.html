@@ -1,0 +1,2548 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Maquette livre photo</title>
+<style>
+  :root{
+    --bg: #e9e9ea;
+    --bg-panel: #f4f4f5;
+    --bg-slot: #ffffff;
+    --line: #cfcfd2;
+    --line-strong: #a9a9ad;
+    --text: #2b2b2e;
+    --text-dim: #85858a;
+    --accent: #3b6ef6;
+    --danger: #d0483e;
+    --page-bg: #ffffff;
+  }
+  *{ box-sizing: border-box; }
+  html,body{
+    margin:0; padding:0; height:100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    font-size: 14px;
+    overflow: hidden;
+  }
+  button{
+    font-family: inherit; font-size: 13px; cursor:pointer;
+    background: var(--bg-panel); border:1px solid var(--line-strong);
+    color: var(--text); border-radius: 4px; padding: 6px 12px;
+  }
+  button:hover{ background: #fff; }
+  button:active{ transform: translateY(1px); }
+  button.primary{ background: var(--accent); color:#fff; border-color: var(--accent); }
+  button.primary:hover{ filter: brightness(1.08); }
+  button:disabled{ opacity:.4; cursor: default; }
+
+  /* ---------- Layout global ---------- */
+  #app{ display:flex; flex-direction:column; height:100vh; }
+
+  #topbar{
+    display:flex; align-items:center; gap:8px;
+    padding: 8px 14px;
+    background: var(--bg-panel);
+    border-bottom: 1px solid var(--line);
+    flex-shrink:0;
+    flex-wrap: wrap;
+  }
+  #topbar .title{ font-weight:600; margin-right:8px; letter-spacing:.2px;}
+  #topbar .sep{ width:1px; align-self:stretch; background:var(--line); margin:2px 6px; }
+  #topbar .spacer{ flex:1; }
+  #topbar .count{ color:var(--text-dim); font-size:12px; margin-left:6px;}
+
+  #tabs{ display:flex; gap:4px; }
+  #tabs button{ border-radius: 4px 4px 0 0; border-bottom:none; }
+  #tabs button.active{ background: var(--bg); font-weight:600; border-color: var(--line); }
+
+  #progress-bar{
+    position:fixed; top:0; left:0; right:0; height:3px; background: var(--accent);
+    z-index: 500; transform-origin:left; transform: scaleX(0); transition: transform .15s;
+    display:none;
+  }
+
+  #main{ flex:1; display:flex; min-height:0; }
+
+  /* ---------- Vue Atelier ---------- */
+  #view-atelier{ display:flex; flex:1; min-height:0; }
+
+  #stock-panel{
+    width: 270px; flex-shrink:0;
+    background: var(--bg-panel);
+    border-right: 1px solid var(--line);
+    display:flex; flex-direction:column;
+    min-height:0;
+  }
+  #stock-header{
+    padding: 10px 12px 6px;
+    display:flex; align-items:center; justify-content:space-between;
+  }
+  #stock-header h3{ margin:0; font-size:12px; text-transform:uppercase; letter-spacing:.06em; color:var(--text-dim); font-weight:600;}
+  #stock-drop{
+    flex:1; overflow-y:auto;
+    padding: 8px;
+    display:grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    align-content:start;
+  }
+  #stock-drop.dragover{ outline: 2px dashed var(--accent); outline-offset:-4px; background:#eef2ff; }
+  #stock-empty{
+    grid-column: 1/-1;
+    text-align:center; color: var(--text-dim);
+    padding: 30px 10px; font-size:13px; line-height:1.5;
+  }
+
+  .thumb{
+    position:relative;
+    background: var(--bg-slot);
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    overflow:hidden;
+    width:100%;
+    height:120px;
+    cursor: grab;
+  }
+  .thumb img{
+    display:block;
+    width:100%; height:100%;
+    object-fit: cover; object-position: center;
+  }
+  .thumb:hover{ border-color: var(--line-strong); }
+  .thumb.dragging{ opacity:.35; }
+  .thumb.loading{ display:flex; align-items:center; justify-content:center; }
+  .thumb.loading::after{
+    content:''; width:16px; height:16px; border-radius:50%;
+    border: 2px solid var(--line-strong); border-top-color: var(--accent);
+    animation: spin .7s linear infinite;
+  }
+  @keyframes spin{ to{ transform: rotate(360deg); } }
+  .thumb .fname{
+    position:absolute; left:0; right:0; bottom:0;
+    background: rgba(0,0,0,.55); color:#fff; font-size:10px;
+    padding: 2px 4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+    opacity:0; transition: opacity .12s;
+  }
+  .thumb:hover .fname{ opacity:1; }
+
+  #board-scroll{
+    flex:1; overflow-y:auto; overflow-x:hidden;
+    padding: 22px 26px 80px;
+  }
+  #board{
+    display:flex; flex-direction:column;
+    gap: 14px;
+    max-width: 780px;
+    margin: 0 auto;
+  }
+
+  .pair-row{
+    display:flex; align-items:stretch; gap:8px;
+  }
+  .pair-index{
+    width: 26px; flex-shrink:0;
+    display:flex; align-items:center; justify-content:center;
+    color: var(--text-dim); font-size:12px; font-variant-numeric: tabular-nums;
+  }
+  .pair-card{
+    flex:1;
+    background: var(--page-bg);
+    border: 1px solid var(--line);
+    border-radius: 5px;
+    display:flex;
+    align-items: stretch;
+    box-shadow: 0 1px 2px rgba(0,0,0,.05);
+    position:relative;
+    min-height: 130px; /* hauteur plancher pour les cases vides (ratio 4:3 approx à largeur normale) */
+  }
+  .page-slot{
+    position:relative;
+    flex:1;
+    min-width:0;
+    border-right: 1px solid var(--line);
+    overflow:hidden;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+  .page-slot.has-image{
+    background: repeating-conic-gradient(#f2f2f3 0% 25%, #ffffff 0% 50%) 50% / 14px 14px;
+  }
+  .page-slot:last-child{ border-right:none; }
+  .page-slot img{
+    display:block; cursor: pointer;
+    max-width:100%; max-height:100%;
+    width:auto; height:auto;
+    object-fit: contain;
+  }
+  .page-slot.dragover-slot{ background:#eef2ff; }
+  .page-slot:focus{ outline: 2px solid var(--accent); outline-offset: -2px; }
+  .page-slot:focus:not(:focus-visible){ outline: 2px solid var(--accent); } /* garde le repère même après un clic simple, pas seulement au clavier */
+  .page-slot .empty-hint{
+    position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+    color: var(--line-strong); font-size:11px; pointer-events:none;
+  }
+  .page-slot .fname-tag{
+    position:absolute; left:4px; bottom:4px; z-index:2;
+    background: rgba(0,0,0,.5); color:#fff; font-size:10px;
+    padding:2px 5px; border-radius:2px;
+    max-width: calc(100% - 8px); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+    opacity:0; transition:opacity .12s; pointer-events:none;
+  }
+  .page-slot:hover .fname-tag{ opacity:1; }
+  .page-slot .clear-btn, .thumb .clear-btn{
+    position:absolute; top:3px; right:3px; z-index:2;
+    width:18px; height:18px; border-radius:50%;
+    background: rgba(0,0,0,.55); color:#fff; border:none;
+    font-size:12px; line-height:1; padding:0;
+    display:flex; align-items:center; justify-content:center;
+    opacity:0; transition:opacity .12s;
+  }
+  .page-slot:hover .clear-btn, .thumb:hover .clear-btn{ opacity:1; }
+  .page-slot .clear-btn:hover, .thumb .clear-btn:hover{ background: var(--danger); }
+
+  .pair-controls{
+    display:flex; flex-direction:column; gap:4px;
+    justify-content:center; flex-shrink:0; width:76px;
+  }
+  .pair-controls button{ width:100%; height:auto; padding:4px 3px; font-size:10.5px; line-height:1.15; }
+
+  #board-footer{ display:flex; justify-content:center; align-items:center; gap:8px; margin-top: 6px; flex-wrap:wrap; }
+  #board-footer select{ font-family:inherit; font-size:13px; padding:5px 8px; border:1px solid var(--line-strong); border-radius:4px; background:#fff; }
+
+  /* ---------- Rangée de texte / titre ---------- */
+  .text-row-card{
+    flex:1; display:flex; align-items:center; justify-content:center;
+    padding: 6px 10px; min-height: auto !important;
+    border-style: dashed;
+  }
+  .text-row-input{
+    width:100%; border:none; background:transparent; font-family:inherit;
+    font-size:19px; font-weight:600; text-align:center; color:var(--text);
+    padding:8px 6px; border-radius:4px; border-bottom:2px dashed transparent;
+  }
+  .text-row-input:hover{ border-bottom-color:var(--line); }
+  .text-row-input:focus{ outline:none; border-bottom-color:var(--accent); background:#fbfbff; }
+  .text-row-input::placeholder{ color:var(--line-strong); font-weight:400; }
+
+  .scroll-text-page{
+    margin:auto; font-size:30px; font-weight:700; text-align:center;
+    padding:40px; color:var(--text); word-break:break-word;
+  }
+
+  /* Fond blanc uni derrière les photos dans l'onglet Défilement, pour
+     éviter le motif à damier (qui n'a d'utilité que pour repérer une
+     éventuelle transparence pendant le montage dans l'Atelier). */
+  #view-scroll .page-slot.has-image{ background:#ffffff; }
+
+  /* ---------- Panneau Noms de fichiers (glissant, dans l'onglet Atelier) ---------- */
+  #names-panel{
+    position: fixed; top:0; right:-360px; width:340px; height:100%;
+    background: #fff; border-left: 1px solid var(--line-strong);
+    box-shadow: -4px 0 18px rgba(0,0,0,.12);
+    z-index: 150; transition: right .18s ease;
+    display:flex; flex-direction:column;
+  }
+  #names-panel.open{ right:0; }
+  #names-panel-header{
+    padding: 12px 14px; border-bottom:1px solid var(--line);
+    display:flex; align-items:center; justify-content:space-between; flex-shrink:0;
+  }
+  #names-panel-header h3{ margin:0; font-size:13px; }
+  #names-list{ flex:1; overflow-y:auto; padding: 6px 0; }
+  #names-list table{ width:100%; border-collapse:collapse; font-size:12.5px; }
+  #names-list td{ padding:6px 12px; border-bottom:1px solid var(--line); vertical-align:top; }
+  #names-list .idx{ color: var(--text-dim); width:28px; white-space:nowrap; }
+  #names-list .empty-cell{ color: var(--line-strong); font-style: italic; }
+  #names-overlay{
+    position:fixed; inset:0; background: rgba(0,0,0,.15); z-index:140; display:none;
+  }
+
+  /* ---------- Vue Défilement (double pages) ---------- */
+  #view-scroll{ flex:1; display:none; flex-direction:column; align-items:center; justify-content:center; position:relative; }
+  #scroll-stage{
+    background: var(--page-bg);
+    border: 1px solid var(--line);
+    box-shadow: 0 4px 22px rgba(0,0,0,.12);
+    display:flex;
+    width: min(84vw, 1000px);
+    min-height: min(63vw, 750px); /* équivalent ratio 4:3 par défaut, mais peut grandir pour une photo verticale */
+    max-height: 78vh;
+  }
+  #scroll-stage .page-slot{ cursor: default; }
+  #scroll-stage .page-slot img{ cursor: zoom-in; }
+  #scroll-nav{ display:flex; align-items:center; gap:18px; margin-top:18px; }
+  #scroll-nav .pagenum{ font-size:13px; color:var(--text-dim); min-width: 70px; text-align:center; font-variant-numeric: tabular-nums;}
+  #scroll-nav button{ width:36px; height:36px; border-radius:50%; padding:0; font-size:16px; }
+
+  /* ---------- Lightbox agrandissement ---------- */
+  #lightbox{
+    position:fixed; inset:0; background: rgba(20,20,22,.92);
+    display:none; align-items:center; justify-content:center;
+    z-index: 200; cursor: zoom-out;
+  }
+  #lightbox img{ max-width:92vw; max-height:92vh; box-shadow: 0 8px 40px rgba(0,0,0,.5); object-fit:contain; }
+  #lightbox .lb-loading{ color:#fff; font-size:13px; }
+
+  /* ---------- Menu contextuel ---------- */
+  #ctx-menu{
+    position:fixed; z-index: 300; display:none;
+    background: #fff; border:1px solid var(--line-strong); border-radius:5px;
+    box-shadow: 0 4px 16px rgba(0,0,0,.18);
+    padding:4px; min-width:220px;
+  }
+  #ctx-menu button{
+    display:block; width:100%; text-align:left; background:none; border:none;
+    padding:7px 10px; border-radius:3px; font-size:13px;
+  }
+  #ctx-menu button:hover{ background: var(--bg-panel); }
+  #ctx-menu hr{ border:none; border-top:1px solid var(--line); margin:4px 0; }
+
+  /* ---------- Modale couleur fond ---------- */
+  #color-modal{
+    position:fixed; inset:0; background: rgba(0,0,0,.3);
+    display:none; align-items:center; justify-content:center; z-index: 250;
+  }
+  #color-modal .box{
+    background:#fff; border-radius:8px; padding:20px 22px; width:280px;
+    box-shadow: 0 10px 40px rgba(0,0,0,.25);
+  }
+  #color-modal h4{ margin:0 0 12px; font-size:14px; }
+  #color-modal input[type=color]{ width:100%; height:38px; border:1px solid var(--line); border-radius:4px; padding:2px; }
+  #color-modal .row{ display:flex; gap:8px; margin-top:14px; justify-content:flex-end; }
+
+  /* ---------- Modale export ---------- */
+  #export-modal{
+    position:fixed; inset:0; background: rgba(0,0,0,.35);
+    display:none; align-items:center; justify-content:center; z-index: 260;
+  }
+  #export-modal .box{
+    background:#fff; border-radius:8px; padding:22px 24px; width:420px; max-width: 92vw;
+    box-shadow: 0 10px 40px rgba(0,0,0,.3);
+    max-height: 88vh; overflow-y:auto;
+  }
+  #export-modal h4{ margin:0 0 16px; font-size:15px; }
+  #export-modal label{ display:block; font-size:12px; color:var(--text-dim); margin: 14px 0 5px; font-weight:600; }
+  #export-modal label:first-of-type{ margin-top:0; }
+  #export-modal input[type=text]{
+    width:100%; padding:7px 9px; border:1px solid var(--line-strong); border-radius:4px;
+    font-size:13px; font-family:inherit;
+  }
+  .export-format-row{ display:flex; flex-direction:column; gap:6px; }
+  .export-format-btn{
+    text-align:left; padding:9px 10px; border-radius:5px;
+    background: var(--bg-panel); border:1px solid var(--line);
+  }
+  .export-format-btn.active{ border-color: var(--accent); background:#eef2ff; font-weight:600; }
+  .export-quality-row{ display:flex; align-items:center; gap:8px; font-size:13px; }
+  .export-quality-row input{ width:auto; }
+  #export-quality-slider-wrap{ margin-top:10px; }
+  #export-quality-slider-wrap.disabled{ opacity:.4; pointer-events:none; }
+  #export-quality-slider{ width:100%; }
+  .export-quality-labels{ display:flex; justify-content:space-between; font-size:11px; color:var(--text-dim); margin-top:2px; }
+  #export-thumbs-block{ margin-top:16px; padding-top:14px; border-top:1px solid var(--line); }
+  .export-thumbs-row{ display:flex; align-items:center; gap:8px; font-size:13px; }
+  .export-thumbs-row input[type=checkbox]{ width:auto; }
+  #export-thumbs-slider-wrap{ margin-top:10px; }
+  #export-thumbs-slider-wrap.disabled{ opacity:.4; pointer-events:none; }
+  #export-thumbs-slider{ width:100%; }
+  #export-progress-text{ font-size:12px; color:var(--text-dim); margin-top:10px; min-height:16px; text-align:center; }
+
+  .toast{
+    position:fixed; bottom:18px; left:50%; transform:translateX(-50%);
+    background:#2b2b2e; color:#fff; padding:8px 16px; border-radius:5px;
+    font-size:13px; z-index: 400; opacity:0; pointer-events:none;
+    transition: opacity .2s, transform .2s;
+    max-width: 70vw; text-align:center;
+  }
+  .toast.show{ opacity:1; transform:translateX(-50%) translateY(-4px); }
+
+  ::-webkit-scrollbar{ width:10px; height:10px; }
+  ::-webkit-scrollbar-thumb{ background: var(--line-strong); border-radius:5px; }
+  ::-webkit-scrollbar-track{ background: transparent; }
+
+  #restore-banner{
+    display:none;
+    background: #eef2ff; border-bottom: 1px solid #c7d2fe;
+    padding: 8px 14px; align-items:center; gap:12px; flex-shrink:0;
+    font-size:13px;
+  }
+  #restore-banner .spacer{ flex:1; }
+  #restore-banner button{ font-size:12.5px; }
+
+  /* ---------- Onglet Sauvegarde ---------- */
+  #view-save{ flex:1; display:none; align-items:center; justify-content:center; }
+  #save-tab-inner{ max-width:480px; text-align:center; padding:30px; }
+  #save-tab-inner h2{ margin:0 0 14px; font-size:18px; }
+  .save-tab-status{ color:var(--text-dim); font-size:13px; margin: 0 0 18px; line-height:1.5; }
+  .save-tab-actions{ display:flex; flex-direction:column; gap:8px; align-items:stretch; }
+  .save-tab-actions button{ padding:10px 14px; font-size:13.5px; }
+  .save-tab-hint{ color:var(--text-dim); font-size:12px; margin-top:18px; line-height:1.5; }
+
+  /* ---------- Pastille de sauvegarde rapide (barre verte discrète) ---------- */
+  #save-pill{
+    position:fixed; bottom:16px; left:50%; transform:translateX(-50%);
+    background:#fff; border:1px solid #cdeedd; border-radius:20px;
+    padding:7px 16px 7px 12px; display:none; align-items:center; gap:10px;
+    font-size:12px; color:#2b2b2e; box-shadow:0 4px 16px rgba(0,0,0,.14);
+    z-index: 410; min-width:200px;
+  }
+  #save-pill.show{ display:flex; }
+  #save-pill .label{ white-space:nowrap; color:#2f8f5b; font-weight:600; }
+  #save-pill .bar-track{ flex:1; height:5px; border-radius:3px; background:#e3f5ea; overflow:hidden; }
+  #save-pill .bar-fill{ height:100%; width:0%; background:#34b06a; transition:width .18s ease; }
+</style>
+</head>
+<body>
+
+<div id="progress-bar"></div>
+
+<div id="restore-banner">
+  <span id="restore-banner-text"></span>
+  <div class="spacer"></div>
+  <button id="restore-accept" class="primary">Reprendre la session</button>
+  <button id="restore-dismiss">Ignorer</button>
+</div>
+
+<div id="app">
+  <div id="topbar">
+    <span class="title">Maquette livre photo</span>
+    <div class="sep"></div>
+    <button id="btn-add-files">+ Ajouter des photos</button>
+    <button id="btn-add-folder">+ Ajouter un dossier</button>
+    <span class="count" id="stock-count"></span>
+    <div class="spacer"></div>
+    <div id="tabs">
+      <button class="active" data-view="atelier">Atelier</button>
+      <button data-view="scroll">Défilement</button>
+      <button data-view="save">Sauvegarde</button>
+    </div>
+    <div class="sep"></div>
+    <button id="btn-names">Noms de fichiers</button>
+    <button id="btn-bg-color">Fond des pages</button>
+    <button id="btn-export" class="primary">Exporter</button>
+    <button id="btn-backup-save" title="Écrase le fichier de cette session avec la version actuelle (ou t'emmène le créer s'il n'existe pas encore)">💾 Sauvegarder</button>
+    <button id="btn-backup-load" title="Ouvrir une sauvegarde .photobook.json déjà créée">Charger</button>
+    <button id="btn-undo" title="Annuler (Ctrl+Z)">↶ Annuler</button>
+    <button id="btn-reset">Réinitialiser</button>
+  </div>
+
+  <div id="main">
+    <div id="view-atelier">
+      <div id="stock-panel">
+        <div id="stock-header"><h3>Photos non placées</h3></div>
+        <div id="stock-drop">
+          <div id="stock-empty">Glisse tes photos ou un dossier ici,<br>ou utilise les boutons en haut.</div>
+        </div>
+      </div>
+      <div id="board-scroll">
+        <div id="board"></div>
+        <div id="board-footer">
+          <select id="new-row-cols" title="Nombre de photos dans la nouvelle rangée">
+            <option value="1">1 photo</option>
+            <option value="2" selected>2 photos</option>
+            <option value="3">3 photos</option>
+            <option value="4">4 photos</option>
+            <option value="5">5 photos</option>
+            <option value="6">6 photos</option>
+          </select>
+          <button id="btn-add-row">+ Ajouter une rangée de photos</button>
+          <button id="btn-add-text">+ Ajouter un titre / texte</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="view-scroll">
+      <div id="scroll-stage"></div>
+      <div id="scroll-nav">
+        <button id="scroll-prev">‹</button>
+        <span class="pagenum" id="scroll-pagenum">1 / 1</span>
+        <button id="scroll-next">›</button>
+      </div>
+    </div>
+
+    <div id="view-save">
+      <div id="save-tab-inner">
+        <h2>Sauvegarde de session</h2>
+        <p id="save-tab-status" class="save-tab-status"></p>
+        <div class="save-tab-actions">
+          <button id="btn-save-create" class="primary">💾 Créer le fichier de sauvegarde</button>
+          <button id="btn-save-overwrite" class="primary" style="display:none;">💾 Écraser avec la version actuelle</button>
+          <button id="btn-save-load-2">Ouvrir une sauvegarde existante…</button>
+        </div>
+        <p class="save-tab-hint">La sauvegarde contient tes photos et toute l'organisation de la maquette (rangées, titres, ordre). Une fois le fichier créé ici, le bouton 💾 en haut de l'écran l'écrase directement en un clic, sans repasser par cet onglet.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="save-pill">
+  <span class="label" id="save-pill-label">Sauvegarde…</span>
+  <div class="bar-track"><div class="bar-fill" id="save-pill-fill"></div></div>
+</div>
+
+<div id="names-overlay"></div>
+<div id="names-panel">
+  <div id="names-panel-header">
+    <h3>Noms de fichiers par paire</h3>
+    <button id="names-close">Fermer</button>
+  </div>
+  <div id="names-list"></div>
+</div>
+
+<input type="file" id="file-input" multiple accept="image/*" style="display:none">
+<input type="file" id="backup-input" accept="application/json,.json" style="display:none">
+
+<div id="lightbox"><img id="lightbox-img" src=""></div>
+
+<div id="ctx-menu">
+  <button id="ctx-duplicate">Dupliquer cette photo</button>
+  <button id="ctx-copy-path">Copier le chemin (à coller dans l'Explorateur)</button>
+  <button id="ctx-copy">Copier l'image (du disque)</button>
+  <hr>
+  <button id="ctx-remove">Retirer de la maquette</button>
+</div>
+
+<div id="color-modal">
+  <div class="box">
+    <h4>Couleur de fond des pages</h4>
+    <input type="color" id="color-picker" value="#ffffff">
+    <div class="row">
+      <button id="color-cancel">Annuler</button>
+      <button id="color-apply" class="primary">Appliquer</button>
+    </div>
+  </div>
+</div>
+
+<div id="export-modal">
+  <div class="box">
+    <h4>Exporter la maquette</h4>
+
+    <label>Ton nom (affiché en haut de l'export)</label>
+    <input type="text" id="export-author" value="Adrian Margolin">
+
+    <label>Nom de la maquette</label>
+    <input type="text" id="export-title" placeholder="Ex : Vacances Été 2026">
+
+    <label>Format</label>
+    <div class="export-format-row">
+      <button class="export-format-btn active" data-format="html">Page web (HTML)</button>
+      <button class="export-format-btn" data-format="pdf-landscape">PDF — une double page par feuille</button>
+      <button class="export-format-btn" data-format="pdf-portrait">PDF — pages à la suite</button>
+      <button class="export-format-btn" data-format="images-zip">Images seules (.zip, pour un site perso)</button>
+    </div>
+
+    <label>Qualité des images</label>
+    <div class="export-quality-row">
+      <input type="checkbox" id="export-compress" checked>
+      <span>Compresser les images (fichier plus léger, pratique à envoyer)</span>
+    </div>
+    <div id="export-quality-slider-wrap">
+      <input type="range" id="export-quality-slider" min="10" max="100" value="70">
+      <div class="export-quality-labels">
+        <span>Fichier léger</span>
+        <span id="export-quality-value">70%</span>
+        <span>Haute qualité</span>
+      </div>
+    </div>
+
+    <div id="export-thumbs-block">
+      <div class="export-thumbs-row">
+        <input type="checkbox" id="export-thumbs-enable" checked>
+        <span>Générer aussi des miniatures (copies en petite taille, même nom + <code>-mini</code>) — pratique pour une page vitrine où on clique pour agrandir</span>
+      </div>
+      <div id="export-thumbs-slider-wrap">
+        <input type="range" id="export-thumbs-slider" min="150" max="900" value="450">
+        <div class="export-quality-labels">
+          <span>Très petit</span>
+          <span id="export-thumbs-value">450 px</span>
+          <span>Grand</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="row" style="margin-top:18px;">
+      <button id="export-cancel">Annuler</button>
+      <button id="export-run" class="primary">Exporter</button>
+    </div>
+    <div id="export-progress-text"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* =========================================================
+   GARANTIE IMPORTANTE
+   Cette application ne modifie, ne déplace et ne supprime JAMAIS
+   aucun fichier sur le disque de l'utilisateur. Tous les accès aux
+   dossiers/fichiers sont demandés en lecture seule (mode: 'read').
+   "Retirer" / "Supprimer" / "Réinitialiser" dans l'interface
+   n'affectent que l'organisation à l'intérieur de cette application
+   (quelles photos sont dans quelle paire, dans quel ordre) — jamais
+   les fichiers eux-mêmes.
+   ========================================================= */
+
+/* =========================================================
+   MODELE DE DONNEES
+   photos: id -> {
+     id, name, handle (FileSystemFileHandle|null), file (File),
+     thumbUrl (miniature basse résolution, toujours chargée),
+     fullUrl (pleine résolution, chargée à la demande pour le zoom)
+   }
+   stock: [id...]
+   rows: [
+     { type:'photos', slots:[idOrNull, idOrNull, ...] },  // 1 à 6 cases
+     { type:'text', text:'Titre…' },
+     ...
+   ]
+   (les anciennes sauvegardes utilisaient "pairs": [[idOrNull,idOrNull],...] —
+   voir migrateToRows() plus bas pour la conversion automatique à l'ouverture.)
+   ========================================================= */
+
+let photos = {};
+let stock = [];
+let rows = [];
+let pageBg = '#ffffff';
+let nextId = 1;
+
+function makePhotosRow(n){ return { type:'photos', slots: Array(Math.max(1,n)).fill(null) }; }
+function makeTextRow(){ return { type:'text', text:'' }; }
+
+/* Convertit l'ancien format "pairs" (toujours 2 cases) vers le nouveau
+   format "rows" (nombre de cases variable + rangées de texte). Permet
+   d'ouvrir sans problème les fichiers créés avec une version précédente
+   de cette application. */
+function migrateToRows(data){
+  if(data && Array.isArray(data.rows)) return data.rows;
+  if(data && Array.isArray(data.pairs)) return data.pairs.map(p => ({ type:'photos', slots: p.slice() }));
+  return [];
+}
+
+function isPhotoUsedAnywhere(id){
+  return rows.some(r => r.type === 'photos' && r.slots.includes(id));
+}
+
+/* =========================================================
+   SAUVEGARDE / RESTAURATION DE SESSION
+   -----------------------------------------------------------
+   Le navigateur ne permet jamais à un site de ré-ouvrir des
+   fichiers automatiquement sans confirmation de l'utilisateur
+   (sécurité). Ce qu'on peut faire : garder en mémoire (IndexedDB)
+   les FileSystemDirectoryHandle des dossiers déjà ouverts avec
+   "+ Ajouter un dossier", et à la réouverture du site, redemander
+   la permission d'accès (un seul clic de confirmation) puis
+   retrouver automatiquement chaque photo par son chemin relatif.
+   La structure (paires, ordre, couleur de fond) est sauvegardée
+   dans localStorage à chaque changement.
+   Les photos importées par glisser-déposer simple (sans passer par
+   "+ Ajouter un dossier") n'ont pas de handle réutilisable : elles
+   ne peuvent pas être restaurées automatiquement — il faudra les
+   re-glisser après une restauration.
+   ========================================================= */
+
+const DB_NAME = 'photobook-maquette';
+const STORE_NAME = 'dossiers';
+const LS_KEY = 'photobook-maquette-structure';
+
+function openHandleDB(){
+  return new Promise((resolve, reject)=>{
+    const req = indexedDB.open(DB_NAME, 1);
+    req.onupgradeneeded = ()=> req.result.createObjectStore(STORE_NAME);
+    req.onsuccess = ()=> resolve(req.result);
+    req.onerror = ()=> reject(req.error);
+  });
+}
+async function saveDirHandle(key, handle){
+  try{
+    const db = await openHandleDB();
+    await new Promise((res, rej)=>{
+      const tx = db.transaction(STORE_NAME, 'readwrite');
+      tx.objectStore(STORE_NAME).put(handle, key);
+      tx.oncomplete = res; tx.onerror = ()=>rej(tx.error);
+    });
+  }catch(e){ console.warn('Sauvegarde du dossier impossible', e); }
+}
+async function loadDirHandles(){
+  try{
+    const db = await openHandleDB();
+    return await new Promise((res, rej)=>{
+      const tx = db.transaction(STORE_NAME, 'readonly');
+      const store = tx.objectStore(STORE_NAME);
+      const out = {};
+      const cursorReq = store.openCursor();
+      cursorReq.onsuccess = ()=>{
+        const cursor = cursorReq.result;
+        if(cursor){ out[cursor.key] = cursor.value; cursor.continue(); }
+        else res(out);
+      };
+      cursorReq.onerror = ()=> rej(cursorReq.error);
+    });
+  }catch(e){ console.warn('Lecture des dossiers sauvegardés impossible', e); return {}; }
+}
+
+/* Sauvegarde la structure (pas les images) : noms/chemins des photos,
+   composition des paires, couleur de fond. Appelée après chaque
+   modification de la planche. */
+function saveStructure(){
+  try{
+    const photosMeta = {};
+    Object.values(photos).forEach(p=>{
+      photosMeta[p.id] = { name: p.name, path: p.path || '', dirKey: p.dirKey || null };
+    });
+    const data = {
+      version: 2,
+      savedAt: Date.now(),
+      photosMeta,
+      stock,
+      rows,
+      pageBg,
+      nextId
+    };
+    localStorage.setItem(LS_KEY, JSON.stringify(data));
+  }catch(e){ console.warn('Sauvegarde de la structure impossible', e); }
+}
+
+function loadSavedStructure(){
+  try{
+    const raw = localStorage.getItem(LS_KEY);
+    return raw ? JSON.parse(raw) : null;
+  }catch(e){ return null; }
+}
+
+function clearSavedStructure(){
+  localStorage.removeItem(LS_KEY);
+}
+
+/* ---------- Historique (Ctrl+Z / Ctrl+Y) ----------
+   On empile un instantané léger (stock + pairs = juste des identifiants,
+   pas les images) avant chaque action qui modifie la composition :
+   déplacement, suppression, ajout/suppression de paire. */
+let history = [];
+let redoStack = [];
+const HISTORY_MAX = 60;
+
+function snapshot(){
+  return JSON.stringify({ stock, rows });
+}
+function pushHistory(){
+  history.push(snapshot());
+  if(history.length > HISTORY_MAX) history.shift();
+  redoStack = []; // toute nouvelle action invalide le "refaire"
+}
+function applySnapshot(json){
+  const data = JSON.parse(json);
+  stock = data.stock;
+  rows = data.rows;
+  renderAll();
+  saveStructure();
+}
+function undo(){
+  if(!history.length){ toast('Rien à annuler.'); return; }
+  redoStack.push(snapshot());
+  const prev = history.pop();
+  applySnapshot(prev);
+  toast('Action annulée');
+}
+function redo(){
+  if(!redoStack.length){ toast('Rien à refaire.'); return; }
+  history.push(snapshot());
+  const next = redoStack.pop();
+  applySnapshot(next);
+  toast('Action rétablie');
+}
+document.addEventListener('keydown', e=>{
+  const ctrlOrCmd = e.ctrlKey || e.metaKey;
+  if(!ctrlOrCmd) return;
+  if(e.key.toLowerCase()==='z' && !e.shiftKey){ e.preventDefault(); undo(); }
+  else if((e.key.toLowerCase()==='z' && e.shiftKey) || e.key.toLowerCase()==='y'){ e.preventDefault(); redo(); }
+});
+
+
+const el = sel => document.querySelector(sel);
+const els = sel => Array.from(document.querySelectorAll(sel));
+
+el('#btn-undo').addEventListener('click', undo);
+
+function toast(msg, long){
+  const t = el('#toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toast._h);
+  toast._h = setTimeout(()=>t.classList.remove('show'), long ? 4200 : 2200);
+}
+
+function genId(){ return 'p' + (nextId++); }
+function escapeHtml(s){
+  return s.replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+/* ---------- Génération de miniature via canvas ----------
+   On redimensionne chaque image à ~480px de côté max avant de
+   créer l'objectURL utilisé partout dans l'interface. Ça évite
+   de garder des centaines de photos pleine résolution (souvent
+   4000-6000px, plusieurs Mo chacune) décodées en mémoire, ce qui
+   est ce qui faisait ramer/planter le navigateur avec 300 photos. */
+const THUMB_MAX = 480;
+
+function makeThumb(file){
+  return new Promise((resolve, reject)=>{
+    const img = new Image();
+    const objUrl = URL.createObjectURL(file);
+    img.onload = ()=>{
+      try{
+        let w = img.naturalWidth, h = img.naturalHeight;
+        if(!w || !h){ URL.revokeObjectURL(objUrl); resolve(objUrl); return; }
+        const scale = Math.min(1, THUMB_MAX / Math.max(w,h));
+        const cw = Math.max(1, Math.round(w*scale));
+        const ch = Math.max(1, Math.round(h*scale));
+        const canvas = document.createElement('canvas');
+        canvas.width = cw; canvas.height = ch;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, cw, ch);
+        canvas.toBlob(blob=>{
+          URL.revokeObjectURL(objUrl);
+          if(blob) resolve(URL.createObjectURL(blob));
+          else resolve(objUrl);
+        }, 'image/jpeg', 0.82);
+      }catch(err){
+        URL.revokeObjectURL(objUrl);
+        reject(err);
+      }
+    };
+    img.onerror = ()=>{ URL.revokeObjectURL(objUrl); reject(new Error('decode-failed')); };
+    img.src = objUrl;
+  });
+}
+
+/* ---------- Import de fichiers (par lots, avec barre de progression) ---------- */
+
+async function importFiles(fileLikeList, handleMap, pathMap, dirMap, dirKeyMap){
+  // fileLikeList: array de File
+  // handleMap: Map(file -> FileSystemFileHandle) optionnel
+  // pathMap: Map(file -> chemin relatif texte) optionnel
+  // dirMap: Map(file -> FileSystemDirectoryHandle du dossier PARENT direct) optionnel
+  // dirKeyMap: Map(file -> clé du dossier RACINE sauvegardé, pour la restauration) optionnel
+  const files = fileLikeList.filter(f => f && f.type && f.type.startsWith('image/'));
+  if(!files.length){ toast("Aucune image détectée dans la sélection."); return; }
+
+  el('#progress-bar').style.display = 'block';
+  let done = 0;
+  const total = files.length;
+  const BATCH = 6; // limite le nombre de décodages simultanés pour ne pas saturer la mémoire
+
+  const newIds = [];
+  const matchedIds = []; // photos déjà connues, retrouvées via ce dépôt (doublon détecté)
+  let enrichedCount = 0;
+  for(let i=0; i<files.length; i+=BATCH){
+    const batch = files.slice(i, i+BATCH);
+    await Promise.all(batch.map(async f=>{
+      try{
+        const relPath = (pathMap && pathMap.get(f)) || f.webkitRelativePath || '';
+        const newHandle = handleMap ? (handleMap.get(f) || null) : null;
+        const newDirHandle = dirMap ? (dirMap.get(f) || null) : null;
+        const newDirKey = dirKeyMap ? (dirKeyMap.get(f) || null) : null;
+
+        // Doublon probable : même nom de fichier, et même chemin relatif
+        // quand les deux versions en ont un (sinon on se base sur le nom seul).
+        const existing = Object.values(photos).find(p =>
+          p.name === f.name && (!relPath || !p.path || p.path === relPath)
+        );
+
+        if(existing && !existing.handle && (newHandle || newDirHandle)){
+          // On vient de retrouver cette photo via un import plus riche
+          // (dossier avec accès disque) : on enrichit l'entrée existante
+          // au lieu d'en créer une seconde. Ça active "voir dans le
+          // dossier" / "copier l'image" sur une photo déjà présente.
+          existing.handle = newHandle || existing.handle;
+          existing.dirHandle = newDirHandle || existing.dirHandle;
+          existing.dirKey = newDirKey || existing.dirKey;
+          existing.path = relPath || existing.path;
+          existing.file = f;
+          enrichedCount++;
+          matchedIds.push(existing.id);
+        } else if(existing){
+          // Déjà connue et rien de nouveau à apporter : on ignore ce fichier
+          // pour éviter un doublon visuel dans la liste.
+          matchedIds.push(existing.id);
+        } else {
+          const thumbUrl = await makeThumb(f);
+          const id = genId();
+          photos[id] = {
+            id, name: f.name,
+            path: relPath,
+            dirKey: newDirKey,
+            handle: newHandle,
+            dirHandle: newDirHandle,
+            file: f,
+            thumbUrl,
+            fullUrl: null
+          };
+          stock.push(id);
+          newIds.push(id);
+        }
+      }catch(err){
+        console.warn('Échec import', f.name, err);
+      }
+      done++;
+      el('#progress-bar').style.transform = `scaleX(${done/total})`;
+    }));
+    // rendu progressif pour que l'utilisateur voie les photos apparaître au fur et à mesure
+    renderStock();
+  }
+
+  el('#progress-bar').style.display = 'none';
+  el('#progress-bar').style.transform = 'scaleX(0)';
+  if(newIds.length) toast(newIds.length + ' photo(s) ajoutée(s)' + (enrichedCount ? ', ' + enrichedCount + ' déjà présente(s) mise(s) à jour' : ''));
+  else if(enrichedCount) toast(enrichedCount + ' photo(s) déjà présente(s) reliée(s) au dossier');
+  if(newIds.length < total - enrichedCount) toast((total-newIds.length-enrichedCount) + " fichier(s) n'ont pas pu être chargés", true);
+  saveStructure();
+  return { newIds, matchedIds };
+}
+
+async function walkDirectory(dirHandle, out, handleMap, pathMap, dirMap, prefix){
+  prefix = prefix || dirHandle.name;
+  for await (const [name, handle] of dirHandle.entries()){
+    if(handle.kind === 'file'){
+      try{
+        const file = await handle.getFile();
+        out.push(file);
+        handleMap.set(file, handle);
+        pathMap.set(file, prefix + '/' + name);
+        if(dirMap) dirMap.set(file, dirHandle); // dossier parent, pour "ouvrir le dossier d'origine"
+      }catch(e){ /* ignore */ }
+    } else if(handle.kind === 'directory'){
+      await walkDirectory(handle, out, handleMap, pathMap, dirMap, prefix + '/' + name);
+    }
+  }
+}
+
+el('#btn-add-files').addEventListener('click', ()=> el('#file-input').click());
+el('#file-input').addEventListener('change', e=>{
+  importFiles(Array.from(e.target.files), null);
+  e.target.value = '';
+});
+
+el('#btn-add-folder').addEventListener('click', async ()=>{
+  if(!window.showDirectoryPicker){
+    toast("Ton navigateur ne supporte pas la sélection de dossier — utilise le glisser-déposer.");
+    return;
+  }
+  toast('Dans la fenêtre qui s\u2019ouvre : entre dans le dossier voulu (même si son contenu semble vide), puis clique sur le bouton "Sélectionner un dossier" en bas — pas "Ouvrir".', true);
+  try{
+    const dirHandle = await window.showDirectoryPicker();
+    const files = [];
+    const handleMap = new Map();
+    const pathMap = new Map();
+    const dirMap = new Map();
+    await walkDirectory(dirHandle, files, handleMap, pathMap, dirMap);
+
+    // Ce dossier racine devient réutilisable pour la restauration future :
+    // on le sauvegarde sous une clé stable et on la relie à chaque fichier.
+    const dirKey = 'dir_' + Date.now() + '_' + Math.random().toString(36).slice(2,8);
+    await saveDirHandle(dirKey, dirHandle);
+    const dirKeyMap = new Map();
+    files.forEach(f => dirKeyMap.set(f, dirKey));
+
+    await importFiles(files, handleMap, pathMap, dirMap, dirKeyMap);
+  }catch(e){ /* annulé */ }
+});
+
+/* Glisser-déposer OS -> stock (fichiers isolés ET dossiers entiers).
+   IMPORTANT : dataTransfer devient invalide après la fin (synchrone) du
+   gestionnaire d'événement 'drop'. On doit donc tout extraire de façon
+   strictement synchrone, AVANT le moindre await.
+   Stratégie : dt.files est la source la plus fiable pour des fichiers
+   déposés directement (toujours peuplé par le navigateur). On l'utilise
+   en priorité. webkitGetAsEntry() sert uniquement à détecter et déplier
+   les dossiers (dt.files ne contient pas leur contenu). */
+function handleDataTransfer(dt){
+  const directFiles = (dt.files && dt.files.length) ? Array.from(dt.files) : [];
+
+  const entries = [];
+  if(dt.items && dt.items.length){
+    for(let i=0; i<dt.items.length; i++){
+      const item = dt.items[i];
+      if(item.kind !== 'file') continue;
+      const entry = item.webkitGetAsEntry ? item.webkitGetAsEntry() : null;
+      if(entry) entries.push(entry);
+    }
+  }
+  const folderEntries = entries.filter(e => e.isDirectory);
+
+  if(folderEntries.length){
+    // Au moins un dossier a été déposé : on explore récursivement TOUT
+    // (dossiers + fichiers isolés éventuels mélangés dans le dépôt).
+    processEntries(entries.length ? entries : directFiles.map(f=>({isFile:true, file:(cb)=>cb(f), name:f.name})));
+  } else if(directFiles.length){
+    // Cas le plus courant : une ou plusieurs photos déposées directement.
+    importFiles(directFiles, null, null);
+  } else {
+    toast("Le dépôt n'a pas été reconnu par le navigateur — essaie le bouton \"+ Ajouter des photos\" à la place.", true);
+  }
+}
+
+async function processEntries(entries){
+  const files = [];
+  const pathMap = new Map();
+  await Promise.all(entries.map(e => walkEntry(e, files, pathMap)));
+  if(files.length) importFiles(files, null, pathMap);
+  else toast("Aucune image trouvée dans le(s) dossier(s) déposé(s).");
+}
+function walkEntry(entry, out, pathMap){
+  return new Promise(resolve=>{
+    if(entry.isFile){
+      entry.file(f=>{
+        out.push(f);
+        if(pathMap) pathMap.set(f, entry.fullPath ? entry.fullPath.replace(/^\//,'') : f.name);
+        resolve();
+      }, err=>{ console.warn('Fichier illisible', entry.name, err); resolve(); });
+    } else if(entry.isDirectory){
+      const reader = entry.createReader();
+      // readEntries ne retourne parfois qu'un lot partiel (limite du navigateur) :
+      // on rappelle en boucle jusqu'à recevoir un tableau vide pour tout récupérer.
+      const collected = [];
+      const readBatch = () => reader.readEntries(batch=>{
+        if(!batch.length){
+          Promise.all(collected.map(e=>walkEntry(e, out, pathMap))).then(resolve);
+          return;
+        }
+        collected.push(...batch);
+        readBatch();
+      }, err=>{ console.warn('Dossier illisible', entry.name, err); resolve(); });
+      readBatch();
+    } else resolve();
+  });
+}
+
+['dragover','drop'].forEach(evt=>{
+  document.addEventListener(evt, e=>{ e.preventDefault(); });
+});
+const stockDrop = el('#stock-drop');
+const dropZones = [stockDrop, el('#board-scroll'), el('#view-atelier')];
+dropZones.forEach(zone=>{
+  zone.addEventListener('dragover', e=>{
+    e.preventDefault();
+    e.stopPropagation();
+    if(e.dataTransfer.types.includes('Files')) stockDrop.classList.add('dragover');
+  });
+  zone.addEventListener('dragleave', e=>{ e.stopPropagation(); });
+  zone.addEventListener('drop', e=>{
+    e.preventDefault();
+    e.stopPropagation(); // empêche le même dépôt de déclencher aussi la zone parente (doublons)
+    stockDrop.classList.remove('dragover');
+    if(e.dataTransfer.types.includes('Files') && !e.dataTransfer.types.includes('text/photo-id')){
+      handleDataTransfer(e.dataTransfer);
+    }
+  });
+});
+
+/* Déposer une photo depuis une case de double page (Atelier ou Défilement)
+   directement sur la barre latérale : la retire de sa paire et la remet
+   dans "photos non placées", pour pouvoir la replacer ailleurs ensuite. */
+stockDrop.addEventListener('drop', e=>{
+  if(!dragPayload || dragPayload.origin !== 'pair') return;
+  const { pair: fromPair, slot: fromSlot } = dragPayload.pos;
+  pushHistory();
+  const id = rows[fromPair].slots[fromSlot];
+  rows[fromPair].slots[fromSlot] = null;
+  if(id && !stock.includes(id)) stock.push(id);
+  renderAll();
+  saveStructure();
+});
+
+/* ---------- Rendu : stock ---------- */
+
+function renderStock(){
+  stockDrop.querySelectorAll('.thumb').forEach(n=>n.remove());
+  el('#stock-empty').style.display = stock.length ? 'none' : 'block';
+  el('#stock-count').textContent = stock.length ? (stock.length + ' en attente') : '';
+
+  const frag = document.createDocumentFragment();
+  stock.forEach(id=>{
+    const p = photos[id];
+    if(!p) return;
+    const div = document.createElement('div');
+    div.className = 'thumb';
+    div.draggable = true;
+    div.dataset.id = id;
+    div.innerHTML = `<img src="${p.thumbUrl}" alt="${escapeHtml(p.name)}" loading="lazy">
+      <div class="fname">${escapeHtml(p.name)}</div>
+      <button class="clear-btn" title="Supprimer de la maquette (le fichier reste intact sur le disque)">×</button>`;
+    attachDragHandlers(div, id, 'stock', null);
+    attachContextMenu(div, id, 'stock', null);
+    div.addEventListener('dblclick', ()=> openLightbox(id));
+    div.querySelector('.clear-btn').addEventListener('click', (e)=>{
+      e.stopPropagation();
+      removeFromStock(id);
+    });
+    frag.appendChild(div);
+  });
+  stockDrop.appendChild(frag);
+}
+
+/* Retire une photo de la liste "non placées". Ne touche jamais au fichier
+   sur le disque — uniquement à l'organisation dans cette application. */
+function removeFromStock(id){
+  pushHistory();
+  stock = stock.filter(x=>x!==id);
+  renderStock();
+  saveStructure();
+}
+
+/* ---------- Rendu : planche (paires) ---------- */
+
+function renderBoard(){
+  const board = el('#board');
+  board.innerHTML = '';
+  const frag = document.createDocumentFragment();
+  rows.forEach((row, idx)=>{
+    const rowEl = document.createElement('div');
+    rowEl.className = 'pair-row';
+
+    const idxLabel = document.createElement('div');
+    idxLabel.className = 'pair-index';
+    idxLabel.textContent = idx+1;
+    rowEl.appendChild(idxLabel);
+
+    const card = document.createElement('div');
+    card.className = 'pair-card';
+
+    if(row.type === 'text'){
+      card.classList.add('text-row-card');
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.className = 'text-row-input';
+      input.placeholder = 'Titre / texte…';
+      input.value = row.text || '';
+      let historyPushedForThisEdit = false;
+      input.addEventListener('focus', ()=>{ historyPushedForThisEdit = false; });
+      input.addEventListener('input', ()=>{
+        if(!historyPushedForThisEdit){ pushHistory(); historyPushedForThisEdit = true; }
+        row.text = input.value;
+        saveStructure();
+        refreshNamesIfOpen();
+      });
+      card.appendChild(input);
+    } else {
+      card.style.background = pageBg;
+      row.slots.forEach((id, slotIdx)=>{
+        const slot = document.createElement('div');
+        slot.className = 'page-slot';
+        slot.dataset.pair = idx;
+        slot.dataset.slot = slotIdx;
+        if(id && photos[id]){
+          const p = photos[id];
+          slot.classList.add('has-image');
+          slot.innerHTML = `<img src="${p.thumbUrl}" alt="${escapeHtml(p.name)}" draggable="false">
+            <div class="fname-tag">${escapeHtml(p.name)}</div>
+            <button class="clear-btn" title="Retirer">×</button>`;
+          slot.querySelector('img').addEventListener('click', ()=> openLightbox(id));
+          slot.querySelector('.clear-btn').addEventListener('click', (e)=>{
+            e.stopPropagation();
+            pushHistory();
+            row.slots[slotIdx] = null;
+            renderBoard();
+            renderScroll();
+            refreshNamesIfOpen();
+            saveStructure();
+          });
+          makeSlotDraggableSource(slot, id, 'pair', {pair: idx, slot: slotIdx});
+          attachContextMenu(slot, id, 'pair', {pair: idx, slot: slotIdx});
+        } else {
+          slot.innerHTML = `<span class="empty-hint">glisser ici</span>`;
+        }
+        attachSlotDropTarget(slot, idx, slotIdx);
+        card.appendChild(slot);
+      });
+    }
+
+    rowEl.appendChild(card);
+
+    const controls = document.createElement('div');
+    controls.className = 'pair-controls';
+    let controlsHtml = `
+      <button title="Monter cette rangée" data-act="up">↑</button>
+      <button title="Descendre cette rangée" data-act="down">↓</button>`;
+    if(row.type !== 'text'){
+      controlsHtml += `
+      <button title="Ajouter une case (une photo de plus) à cette rangée" data-act="addcol">+ photo</button>
+      <button title="Retirer la dernière case de cette rangée" data-act="delcol">− photo</button>`;
+    }
+    controlsHtml += `
+      <button title="Ajouter une rangée de photos juste après" data-act="add">+ rangée</button>
+      <button title="Ajouter un titre juste après" data-act="addtext">+ titre</button>
+      <button title="Supprimer cette rangée" data-act="del">🗑</button>`;
+    controls.innerHTML = controlsHtml;
+    controls.querySelector('[data-act=up]').addEventListener('click', ()=> moveRow(idx, -1));
+    controls.querySelector('[data-act=down]').addEventListener('click', ()=> moveRow(idx, 1));
+    const addColBtn = controls.querySelector('[data-act=addcol]');
+    if(addColBtn) addColBtn.addEventListener('click', ()=> changeRowColumns(idx, 1));
+    const delColBtn = controls.querySelector('[data-act=delcol]');
+    if(delColBtn) delColBtn.addEventListener('click', ()=> changeRowColumns(idx, -1));
+    controls.querySelector('[data-act=add]').addEventListener('click', ()=>
+      insertRowAfter(idx, makePhotosRow(row.type==='photos' ? row.slots.length : 2)));
+    controls.querySelector('[data-act=addtext]').addEventListener('click', ()=> insertRowAfter(idx, makeTextRow()));
+    controls.querySelector('[data-act=del]').addEventListener('click', ()=> deleteRow(idx));
+    rowEl.appendChild(controls);
+
+    frag.appendChild(rowEl);
+  });
+  board.appendChild(frag);
+}
+
+function changeRowColumns(idx, delta){
+  const row = rows[idx];
+  if(!row || row.type !== 'photos') return;
+  if(delta > 0){
+    if(row.slots.length >= 8){ toast('Une rangée ne peut pas dépasser 8 photos.'); return; }
+    pushHistory();
+    row.slots.push(null);
+  } else {
+    if(row.slots.length <= 1){ toast('Une rangée doit garder au moins une case.'); return; }
+    pushHistory();
+    const removed = row.slots.pop();
+    if(removed && !isPhotoUsedAnywhere(removed) && !stock.includes(removed)) stock.push(removed);
+  }
+  renderAll();
+  saveStructure();
+}
+
+function moveRow(idx, dir){
+  const j = idx+dir;
+  if(j<0 || j>=rows.length) return;
+
+  // Pour que le clic répété sur ↑/↓ reste "sous la souris" sans qu'elle
+  // ait besoin de suivre le mouvement : on retient la position à l'écran
+  // de CETTE ligne avant le déplacement, puis on réajuste le défilement
+  // juste après pour qu'elle réapparaisse exactement au même endroit.
+  const scrollEl = el('#board-scroll');
+  const rowEls = els('#board .pair-row');
+  const beforeTop = rowEls[idx] ? rowEls[idx].getBoundingClientRect().top : null;
+
+  pushHistory();
+  [rows[idx], rows[j]] = [rows[j], rows[idx]];
+  renderBoard(); renderScroll(); refreshNamesIfOpen();
+  saveStructure();
+
+  if(beforeTop !== null){
+    const newRowEls = els('#board .pair-row');
+    const afterTop = newRowEls[j] ? newRowEls[j].getBoundingClientRect().top : null;
+    if(afterTop !== null){
+      scrollEl.scrollTop += (afterTop - beforeTop);
+    }
+  }
+}
+
+function deleteRow(idx){
+  pushHistory();
+  const [removed] = rows.splice(idx,1);
+  if(removed && removed.type === 'photos'){
+    removed.slots.forEach(id=>{
+      if(id && !isPhotoUsedAnywhere(id) && !stock.includes(id)) stock.push(id);
+    });
+  }
+  renderAll();
+  saveStructure();
+}
+
+function insertRowAfter(idx, newRow){
+  pushHistory();
+  rows.splice(idx+1, 0, newRow);
+  renderBoard();
+  saveStructure();
+}
+
+el('#btn-add-row').addEventListener('click', ()=>{
+  const n = parseInt(el('#new-row-cols').value, 10) || 2;
+  pushHistory();
+  rows.push(makePhotosRow(n));
+  renderBoard();
+  saveStructure();
+});
+
+el('#btn-add-text').addEventListener('click', ()=>{
+  pushHistory();
+  rows.push(makeTextRow());
+  renderBoard();
+  saveStructure();
+  requestAnimationFrame(()=>{
+    const inputs = els('.text-row-input');
+    if(inputs.length) inputs[inputs.length-1].focus();
+  });
+});
+
+/* ---------- Drag & drop interne ---------- */
+
+let dragPayload = null;
+
+function attachDragHandlers(node, id, origin, pos){
+  node.addEventListener('dragstart', e=>{
+    dragPayload = { id, origin, pos };
+    e.dataTransfer.setData('text/photo-id', id);
+    e.dataTransfer.effectAllowed = 'move';
+    node.classList.add('dragging');
+  });
+  node.addEventListener('dragend', ()=>{
+    node.classList.remove('dragging');
+    dragPayload = null;
+  });
+}
+
+function makeSlotDraggableSource(slot, id, origin, pos){
+  slot.draggable = true;
+  attachDragHandlers(slot, id, origin, pos);
+}
+
+function attachSlotDropTarget(slot, pairIdx, slotIdx){
+  slot.tabIndex = 0; // rend la case focusable au clic, nécessaire pour recevoir Ctrl+V
+  slot.addEventListener('dragover', e=>{
+    e.preventDefault();
+    e.stopPropagation();
+    slot.classList.add('dragover-slot');
+  });
+  slot.addEventListener('dragleave', e=>{
+    e.stopPropagation();
+    slot.classList.remove('dragover-slot');
+  });
+  slot.addEventListener('drop', e=>{
+    e.preventDefault();
+    e.stopPropagation(); // empêche le dépôt de remonter vers le stock (éviterait un doublon)
+    slot.classList.remove('dragover-slot');
+
+    // Cas 1 : dépôt venant directement de l'Explorateur Windows (pas encore importé)
+    if(e.dataTransfer.types.includes('Files') && !e.dataTransfer.types.includes('text/photo-id')){
+      importFilesIntoSlot(e.dataTransfer, pairIdx, slotIdx);
+      return;
+    }
+    // Cas 2 : dépôt d'une vignette déjà présente dans l'app (stock ou autre case)
+    if(!dragPayload) return;
+    placeInSlot(dragPayload, pairIdx, slotIdx);
+  });
+  // Clic sur la case = elle prend le focus, pour que Ctrl+V colle précisément ici
+  slot.addEventListener('mousedown', ()=>{ slot.focus(); });
+  slot.addEventListener('paste', e=>{
+    e.preventDefault();
+    e.stopPropagation();
+    pasteImageIntoSlot(e.clipboardData, pairIdx, slotIdx);
+  });
+}
+
+/* Colle une image copiée depuis le presse-papier (Ctrl+V) directement
+   dans la case ciblée — pratique pour ramener une photo copiée ailleurs
+   (un autre logiciel, ou "Copier l'image (du disque)" de cette appli)
+   sans avoir à la réimporter comme un fichier. */
+async function pasteImageIntoSlot(clipboardData, pairIdx, slotIdx){
+  if(!clipboardData || !clipboardData.items){
+    toast("Rien à coller — copie d'abord une image (Ctrl+C ou clic droit → Copier).");
+    return;
+  }
+  let blob = null;
+  for(const item of clipboardData.items){
+    if(item.type && item.type.startsWith('image/')){
+      blob = item.getAsFile();
+      break;
+    }
+  }
+  if(!blob){
+    toast("Le presse-papier ne contient pas d'image.");
+    return;
+  }
+  const ext = (blob.type.split('/')[1] || 'png').replace('jpeg','jpg');
+  const file = new File([blob], 'image-collée-' + Date.now() + '.' + ext, { type: blob.type });
+  const { newIds, matchedIds } = await importFiles([file], null, null);
+  const firstId = newIds[0] || matchedIds[0];
+  if(!firstId){ toast("Le collage a échoué."); return; }
+  pushHistory();
+  stock = stock.filter(x=>x!==firstId);
+  const targetId = rows[pairIdx].slots[slotIdx];
+  rows[pairIdx].slots[slotIdx] = firstId;
+  if(targetId) stock.push(targetId);
+  renderAll();
+  saveStructure();
+  toast('Image collée dans la case');
+}
+
+/* Dépose une ou plusieurs photos directement depuis le disque sur une case
+   précise. Deux cas possibles :
+   - le fichier est nouveau : il est importé, puis placé dans cette case.
+   - le fichier correspond à une photo déjà présente dans l'application
+     (même nom/chemin) : on ne la réimporte pas, on la DÉPLACE simplement
+     vers cette case (comme si on l'avait glissée depuis la barre latérale) —
+     plus besoin de la faire glisser depuis le stock au préalable. */
+async function importFilesIntoSlot(dt, pairIdx, slotIdx){
+  const directFiles = (dt.files && dt.files.length) ? Array.from(dt.files) : [];
+  const images = directFiles.filter(f => f && f.type && f.type.startsWith('image/'));
+  if(!images.length){
+    toast("Le dépôt n'a pas été reconnu par le navigateur.");
+    return;
+  }
+  const { newIds, matchedIds } = await importFiles(images, null, null);
+  const firstId = newIds[0] || matchedIds[0];
+  if(!firstId){
+    toast("Ce fichier n'a pas pu être chargé.");
+    return;
+  }
+  pushHistory();
+  stock = stock.filter(x=>x!==firstId);
+  const targetId = rows[pairIdx].slots[slotIdx];
+  rows[pairIdx].slots[slotIdx] = firstId;
+  if(targetId) stock.push(targetId);
+  renderAll();
+  saveStructure();
+}
+
+function placeInSlot(payload, pairIdx, slotIdx){
+  pushHistory();
+  const targetId = rows[pairIdx].slots[slotIdx];
+  if(payload.origin === 'stock'){
+    stock = stock.filter(x=>x!==payload.id);
+    rows[pairIdx].slots[slotIdx] = payload.id;
+    if(targetId) stock.push(targetId);
+  } else if(payload.origin === 'pair'){
+    const {pair: fromPair, slot: fromSlot} = payload.pos;
+    if(fromPair===pairIdx && fromSlot===slotIdx){ history.pop(); return; }
+    rows[fromPair].slots[fromSlot] = targetId || null;
+    rows[pairIdx].slots[slotIdx] = payload.id;
+  }
+  renderAll();
+  saveStructure();
+}
+
+/* Permettre aussi de déposer une photo du stock directement dans la zone du stock pour réordonner (optionnel, simple) */
+stockDrop.addEventListener('dragover', e=>{
+  if(dragPayload && dragPayload.origin==='stock') e.preventDefault();
+});
+
+/* ---------- Panneau Noms de fichiers ---------- */
+
+function renderNames(){
+  const list = el('#names-list');
+  if(!rows.length){
+    list.innerHTML = '<p style="color:var(--text-dim);text-align:center;margin-top:30px;padding:0 16px;">Aucune rangée pour le moment.</p>';
+    return;
+  }
+  let rowsHtml = rows.map((row, idx)=>{
+    if(row.type === 'text'){
+      return `<tr><td class="idx">${idx+1}</td><td><em>${row.text ? escapeHtml(row.text) : '<span class="empty-cell">— titre vide —</span>'}</em></td></tr>`;
+    }
+    const names = row.slots.map(id => id && photos[id] ? escapeHtml(photos[id].name) : '<span class="empty-cell">— vide —</span>').join('<br>');
+    return `<tr><td class="idx">${idx+1}</td><td>${names}</td></tr>`;
+  }).join('');
+  list.innerHTML = `<table><tbody>${rowsHtml}</tbody></table>`;
+}
+function refreshNamesIfOpen(){
+  if(el('#names-panel').classList.contains('open')) renderNames();
+}
+el('#btn-names').addEventListener('click', ()=>{
+  renderNames();
+  el('#names-panel').classList.add('open');
+  el('#names-overlay').style.display = 'block';
+});
+function closeNames(){
+  el('#names-panel').classList.remove('open');
+  el('#names-overlay').style.display = 'none';
+}
+el('#names-close').addEventListener('click', closeNames);
+el('#names-overlay').addEventListener('click', closeNames);
+
+/* ---------- Vue Défilement ---------- */
+
+let scrollPos = 0;
+function renderScroll(){
+  const stage = el('#scroll-stage');
+  stage.innerHTML = '';
+  stage.classList.remove('text-page');
+  if(!rows.length){
+    stage.style.background = pageBg;
+    stage.innerHTML = '<div style="margin:auto;color:var(--text-dim);">Aucune rangée à afficher</div>';
+    el('#scroll-pagenum').textContent = '0 / 0';
+    return;
+  }
+  scrollPos = Math.max(0, Math.min(scrollPos, rows.length-1));
+  const row = rows[scrollPos];
+
+  if(row.type === 'text'){
+    stage.style.background = '#ffffff';
+    const div = document.createElement('div');
+    div.className = 'scroll-text-page';
+    div.textContent = row.text || '(titre vide)';
+    stage.appendChild(div);
+  } else {
+    stage.style.background = pageBg;
+    row.slots.forEach((id, slotIdx)=>{
+      const slot = document.createElement('div');
+      slot.className = 'page-slot';
+      if(id && photos[id]){
+        const p = photos[id];
+        slot.classList.add('has-image');
+        slot.innerHTML = `<img src="${p.thumbUrl}" alt="${escapeHtml(p.name)}" draggable="false">
+          <div class="fname-tag">${escapeHtml(p.name)}</div>
+          <button class="clear-btn" title="Retirer">×</button>`;
+        slot.querySelector('img').addEventListener('click', ()=> openLightbox(id));
+        slot.querySelector('.clear-btn').addEventListener('click', (e)=>{
+          e.stopPropagation();
+          pushHistory();
+          row.slots[slotIdx] = null;
+          renderScroll(); renderBoard(); refreshNamesIfOpen(); saveStructure();
+        });
+        makeSlotDraggableSource(slot, id, 'pair', {pair: scrollPos, slot: slotIdx});
+        attachContextMenu(slot, id, 'pair', {pair: scrollPos, slot: slotIdx});
+      } else {
+        slot.innerHTML = `<span class="empty-hint">glisser une photo ici</span>`;
+      }
+      attachSlotDropTarget(slot, scrollPos, slotIdx);
+      stage.appendChild(slot);
+    });
+  }
+  el('#scroll-pagenum').textContent = (scrollPos+1) + ' / ' + rows.length;
+}
+el('#scroll-prev').addEventListener('click', ()=>{ scrollPos--; renderScroll(); });
+el('#scroll-next').addEventListener('click', ()=>{ scrollPos++; renderScroll(); });
+
+/* La vue Défilement n'a pas de panneau "photos non placées" visible à
+   l'écran — pour pouvoir quand même y glisser une photo depuis le stock,
+   on autorise le dépôt de vignettes internes sur la zone même si le
+   panneau est ailleurs (le payload suffit, pas besoin de le voir). */
+
+document.addEventListener('keydown', e=>{
+  if(currentView !== 'scroll') return;
+  if(e.key === 'ArrowLeft'){ scrollPos--; renderScroll(); }
+  if(e.key === 'ArrowRight'){ scrollPos++; renderScroll(); }
+});
+
+/* ---------- Onglets ---------- */
+
+let currentView = 'atelier';
+function switchView(view){
+  els('#tabs button').forEach(b=> b.classList.toggle('active', b.dataset.view===view));
+  currentView = view;
+  el('#view-atelier').style.display = currentView==='atelier' ? 'flex' : 'none';
+  el('#view-scroll').style.display = currentView==='scroll' ? 'flex' : 'none';
+  el('#view-save').style.display = currentView==='save' ? 'flex' : 'none';
+  if(currentView==='scroll') renderScroll();
+  if(currentView==='save') renderSaveTab();
+}
+els('#tabs button').forEach(btn=>{
+  btn.addEventListener('click', ()=> switchView(btn.dataset.view));
+});
+
+/* ---------- Lightbox (charge la pleine résolution à la demande) ---------- */
+
+async function openLightbox(id){
+  const p = photos[id];
+  if(!p) return;
+  el('#lightbox').style.display = 'flex';
+  const imgEl = el('#lightbox-img');
+  imgEl.src = p.thumbUrl; // affichage immédiat avec la miniature
+  if(!p.fullUrl){
+    try{
+      p.fullUrl = URL.createObjectURL(p.file);
+    }catch(e){ /* on garde la miniature */ }
+  }
+  if(p.fullUrl) imgEl.src = p.fullUrl;
+}
+el('#lightbox').addEventListener('click', ()=>{ el('#lightbox').style.display='none'; });
+document.addEventListener('keydown', e=>{
+  if(e.key==='Escape'){
+    if(el('#lightbox').style.display === 'flex'){
+      el('#lightbox').style.display='none';
+    } else if(currentView === 'scroll'){
+      switchView('atelier');
+    }
+  }
+});
+
+/* ---------- Menu contextuel ---------- */
+
+let ctxTarget = null;
+
+function attachContextMenu(node, id, origin, pos){
+  node.addEventListener('contextmenu', e=>{
+    e.preventDefault();
+    ctxTarget = {id, origin, pos};
+    const menu = el('#ctx-menu');
+    menu.style.left = Math.min(e.pageX, window.innerWidth-230) + 'px';
+    menu.style.top = Math.min(e.pageY, window.innerHeight-190) + 'px';
+    menu.style.display = 'block';
+    const p = photos[id];
+    el('#ctx-copy-path').disabled = !p.path;
+    el('#ctx-copy').disabled = !p.file;
+  });
+}
+document.addEventListener('click', e=>{
+  if(!e.target.closest('#ctx-menu')) el('#ctx-menu').style.display='none';
+});
+
+el('#ctx-duplicate').addEventListener('click', ()=>{
+  if(!ctxTarget) return;
+  const src = photos[ctxTarget.id];
+  const newId = genId();
+  photos[newId] = { ...src, id: newId };
+  stock.push(newId);
+  renderAll();
+  toast('Photo dupliquée dans les photos non placées');
+});
+
+el('#ctx-remove').addEventListener('click', ()=>{
+  if(!ctxTarget) return;
+  const {id, origin, pos} = ctxTarget;
+  if(origin === 'stock'){
+    stock = stock.filter(x=>x!==id);
+  } else if(origin === 'pair'){
+    rows[pos.pair].slots[pos.slot] = null;
+  }
+  renderAll();
+  saveStructure();
+});
+
+/* "Ouvrir le dossier d'origine" : ouvre la fenêtre native de sélection de
+   fichier de Windows, démarrée directement dans le dossier d'où vient la
+   photo (via startIn avec le handle du dossier). Ce sera la fenêtre
+   standard de l'Explorateur, pas le mini-popup bleu de l'app Photos —
+   un site web n'a pas accès à cette interface précise, mais celle-ci
+   ouvre bien le bon dossier et permet de voir/sélectionner le fichier.
+   Disponible uniquement pour les photos importées via "Ajouter un dossier"
+   (le glisser-déposer ne donne jamais accès à un handle de dossier —
+   c'est une limite du navigateur, pas de cette application). */
+/* "Copier le chemin" copie le nom (et sous-dossier s'il est connu) du
+   fichier — pas le chemin absolu complet du disque (C:\...), que le
+   navigateur n'expose jamais par sécurité. Colle-le dans la barre de
+   recherche de l'Explorateur Windows, à l'intérieur du bon dossier, pour
+   retrouver et sélectionner la photo. Aucun site web ne peut ouvrir
+   l'Explorateur directement à la place de l'utilisateur — c'est bloqué
+   par Windows lui-même, pas seulement par le navigateur. */
+el('#ctx-copy-path').addEventListener('click', async ()=>{
+  if(!ctxTarget) return;
+  const p = photos[ctxTarget.id];
+  const pathToCopy = p.path || p.name;
+  try{
+    await navigator.clipboard.writeText(pathToCopy);
+    toast('Copié : ' + pathToCopy + ' — colle-le dans la barre de recherche de l\u2019Explorateur, dans le bon dossier.', true);
+  }catch(e){
+    toast('Nom du fichier : ' + pathToCopy, true);
+  }
+});
+
+el('#ctx-copy').addEventListener('click', async ()=>{
+  if(!ctxTarget) return;
+  const p = photos[ctxTarget.id];
+  if(!p.file){ toast("Fichier original indisponible pour cette photo."); return; }
+  try{
+    // On copie toujours le fichier original en pleine résolution (p.file),
+    // jamais la miniature compressée utilisée pour l'affichage — que la
+    // photo ait été importée par glisser-déposer ou via "+ Ajouter un dossier".
+    let type = p.file.type;
+    if(!type || !type.startsWith('image/')) type = 'image/png'; // filet de sécurité pour ClipboardItem
+    await navigator.clipboard.write([ new ClipboardItem({ [type]: p.file }) ]);
+    toast('Photo originale copiée — colle-la dans ton logiciel de livre photo (Ctrl+V)');
+  }catch(e){
+    console.warn(e);
+    toast("Échec de la copie — le format de cette image n'est peut-être pas supporté par le presse-papier (essaie avec un .jpg ou .png).", true);
+  }
+});
+
+/* ---------- Couleur de fond des pages ---------- */
+
+el('#btn-bg-color').addEventListener('click', ()=>{
+  el('#color-picker').value = pageBg;
+  el('#color-modal').style.display = 'flex';
+});
+el('#color-cancel').addEventListener('click', ()=> el('#color-modal').style.display='none');
+el('#color-apply').addEventListener('click', ()=>{
+  pageBg = el('#color-picker').value;
+  el('#color-modal').style.display='none';
+  renderBoard(); renderScroll();
+});
+
+/* ---------- Export (HTML autonome / PDF) ----------
+   Génère un document séparé et autonome, indépendant de cette application :
+   toutes les images y sont ré-encodées en base64 et intégrées directement
+   dans le fichier (aucune dépendance externe), pour que la personne qui
+   le reçoit puisse l'ouvrir n'importe où, même hors ligne.
+   Le PDF est produit via l'impression du navigateur (Ctrl+P détourné en
+   code) plutôt qu'une librairie externe : c'est le moyen le plus fiable
+   d'obtenir un vrai PDF depuis une page web, sans dépendance supplémentaire. */
+
+let exportFormat = 'html';
+
+el('#btn-export').addEventListener('click', ()=>{
+  if(!rows.length){ toast("Ajoute au moins une rangée avant d'exporter."); return; }
+  el('#export-progress-text').textContent = '';
+  el('#export-modal').style.display = 'flex';
+});
+el('#export-cancel').addEventListener('click', ()=> el('#export-modal').style.display = 'none');
+
+els('.export-format-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    els('.export-format-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    exportFormat = btn.dataset.format;
+  });
+});
+
+el('#export-compress').addEventListener('change', e=>{
+  el('#export-quality-slider-wrap').classList.toggle('disabled', !e.target.checked);
+});
+el('#export-quality-slider').addEventListener('input', e=>{
+  el('#export-quality-value').textContent = e.target.value + '%';
+});
+el('#export-thumbs-enable').addEventListener('change', e=>{
+  el('#export-thumbs-slider-wrap').classList.toggle('disabled', !e.target.checked);
+});
+el('#export-thumbs-slider').addEventListener('input', e=>{
+  el('#export-thumbs-value').textContent = e.target.value + ' px';
+});
+
+/* Ré-encode une image (via canvas) à la qualité JPEG choisie. Si la
+   compression est désactivée, renvoie le fichier original tel quel. */
+function encodeForExport(file, compress, qualityPercent){
+  return new Promise((resolve)=>{
+    if(!compress){
+      const reader = new FileReader();
+      reader.onload = ()=> resolve(reader.result);
+      reader.onerror = ()=> resolve(null);
+      reader.readAsDataURL(file);
+      return;
+    }
+    const img = new Image();
+    const objUrl = URL.createObjectURL(file);
+    img.onload = ()=>{
+      const canvas = document.createElement('canvas');
+      // Limite raisonnable même en "haute qualité" pour rester envoyable par email/chat
+      const MAX_SIDE = 2000;
+      const scale = Math.min(1, MAX_SIDE / Math.max(img.naturalWidth, img.naturalHeight));
+      canvas.width = Math.round(img.naturalWidth * scale);
+      canvas.height = Math.round(img.naturalHeight * scale);
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      URL.revokeObjectURL(objUrl);
+      resolve(canvas.toDataURL('image/jpeg', qualityPercent/100));
+    };
+    img.onerror = ()=>{ URL.revokeObjectURL(objUrl); resolve(null); };
+    img.src = objUrl;
+  });
+}
+
+/* Génère une miniature (copie en petite taille) d'une photo, destinée à
+   être affichée sur une page vitrine — la version pleine résolution ne
+   se charge qu'au clic. Qualité JPEG fixée à un niveau raisonnable pour
+   des vignettes (elles sont petites, pas besoin d'une qualité élevée). */
+function makeThumbDataUrl(file, maxSide){
+  return new Promise((resolve)=>{
+    const img = new Image();
+    const objUrl = URL.createObjectURL(file);
+    img.onload = ()=>{
+      const canvas = document.createElement('canvas');
+      const scale = Math.min(1, maxSide / Math.max(img.naturalWidth, img.naturalHeight));
+      canvas.width = Math.max(1, Math.round(img.naturalWidth * scale));
+      canvas.height = Math.max(1, Math.round(img.naturalHeight * scale));
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      URL.revokeObjectURL(objUrl);
+      resolve(canvas.toDataURL('image/jpeg', 0.8));
+    };
+    img.onerror = ()=>{ URL.revokeObjectURL(objUrl); resolve(null); };
+    img.src = objUrl;
+  });
+}
+
+el('#export-run').addEventListener('click', async ()=>{
+  const author = el('#export-author').value.trim() || 'Adrian Margolin';
+  const title = el('#export-title').value.trim() || 'Maquette livre photo';
+  const compress = el('#export-compress').checked;
+  const quality = parseInt(el('#export-quality-slider').value, 10);
+  const thumbsEnabled = el('#export-thumbs-enable').checked;
+  const thumbSize = parseInt(el('#export-thumbs-slider').value, 10);
+
+  // IMPORTANT : la fenêtre pour le PDF doit s'ouvrir ICI, tout de suite,
+  // dans le même tick que le clic — sinon Chrome ne la considère plus
+  // comme déclenchée par un geste utilisateur direct (à cause du temps
+  // pris par l'encodage des images juste après) et bloque le pop-up
+  // silencieusement, d'où l'erreur "le navigateur a bloqué les pop-ups".
+  let pdfWindow = null;
+  if(exportFormat === 'pdf-landscape' || exportFormat === 'pdf-portrait'){
+    pdfWindow = window.open('', '_blank');
+    if(!pdfWindow){
+      toast("Le navigateur a bloqué l'ouverture de la fenêtre d'impression. Autorise les pop-ups pour ce site (icône dans la barre d'adresse) puis clique à nouveau sur \"Exporter\".", true);
+      return;
+    }
+    pdfWindow.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Préparation…</title></head><body style="font-family:sans-serif;padding:40px;color:#555;">Préparation du document, un instant…</body></html>');
+  }
+
+  el('#export-run').disabled = true;
+  el('#export-cancel').disabled = true;
+
+  try{
+    // Encoder toutes les photos utilisées dans les rangées (pas le stock,
+    // qui n'a pas sa place dans un export destiné à être lu par d'autres).
+    const usedIds = [];
+    rows.forEach(r=> { if(r.type==='photos') r.slots.forEach(id=> { if(id) usedIds.push(id); }); });
+    const uniqueIds = [...new Set(usedIds)];
+
+    const wantThumbs = thumbsEnabled && (exportFormat === 'html' || exportFormat === 'images-zip');
+
+    const encoded = {}; // id -> dataURL (pleine taille / qualité choisie)
+    const encodedThumbs = {}; // id -> dataURL (miniature), rempli seulement si demandé
+    for(let i=0; i<uniqueIds.length; i++){
+      const id = uniqueIds[i];
+      const p = photos[id];
+      el('#export-progress-text').textContent = `Préparation des images… (${i+1}/${uniqueIds.length})`;
+      encoded[id] = await encodeForExport(p.file, compress, quality);
+      if(wantThumbs){
+        encodedThumbs[id] = await makeThumbDataUrl(p.file, thumbSize);
+      }
+    }
+
+    el('#export-progress-text').textContent = 'Génération du document…';
+
+    if(exportFormat === 'html'){
+      exportAsHtml(author, title, encoded, wantThumbs ? encodedThumbs : null);
+    } else if(exportFormat === 'pdf-landscape'){
+      exportAsPdf(author, title, encoded, 'landscape', pdfWindow);
+    } else if(exportFormat === 'pdf-portrait'){
+      exportAsPdf(author, title, encoded, 'portrait', pdfWindow);
+    } else if(exportFormat === 'images-zip'){
+      await exportAsImagesZip(title, encoded, wantThumbs ? encodedThumbs : null);
+    }
+
+    el('#export-modal').style.display = 'none';
+  }catch(e){
+    console.error(e);
+    if(pdfWindow) pdfWindow.close();
+    toast("Échec de l'export — réessaie, ou avec la compression activée si le fichier est très volumineux.", true);
+  }finally{
+    el('#export-run').disabled = false;
+    el('#export-cancel').disabled = false;
+    el('#export-progress-text').textContent = '';
+  }
+});
+
+/* Construit le HTML des rangées (photos ou titres), réutilisé pour l'export
+   HTML et PDF. Si "thumbs" est fourni (export HTML avec miniatures activées),
+   les <img> pointent vers la miniature et portent la pleine résolution dans
+   data-full, pour un agrandissement au clic géré par le script de la page
+   exportée — sinon l'image affichée est directement la pleine résolution. */
+function buildExportPagesHtml(encoded, thumbs){
+  return rows.map((row)=>{
+    if(row.type === 'text'){
+      return `<div class="xp-text-row">${escapeHtml(row.text || '')}</div>`;
+    }
+    const cells = row.slots.map(id=>{
+      if(id && encoded[id]){
+        if(thumbs && thumbs[id]){
+          return `<div class="xp-slot"><img class="xp-clickable" src="${thumbs[id]}" data-full="${encoded[id]}" alt=""></div>`;
+        }
+        return `<div class="xp-slot"><img src="${encoded[id]}" alt=""></div>`;
+      }
+      return `<div class="xp-slot xp-empty"></div>`;
+    }).join('');
+    return `<div class="xp-pair" style="background:${escapeHtml(pageBg)}">${cells}</div>`;
+  }).join('\n');
+}
+
+function exportAsHtml(author, title, encoded, thumbs){
+  const pagesHtml = buildExportPagesHtml(encoded, thumbs);
+  const lightboxBlock = thumbs ? `
+<div id="xp-lightbox" onclick="this.style.display='none'">
+  <img id="xp-lightbox-img" src="">
+</div>
+<script>
+  document.querySelectorAll('.xp-clickable').forEach(function(img){
+    img.style.cursor = 'zoom-in';
+    img.addEventListener('click', function(){
+      document.getElementById('xp-lightbox-img').src = img.getAttribute('data-full');
+      document.getElementById('xp-lightbox').style.display = 'flex';
+    });
+  });
+<\/script>` : '';
+  const lightboxCss = thumbs ? `
+  .xp-clickable{ cursor: zoom-in; }
+  #xp-lightbox{
+    display:none; position:fixed; inset:0; background:rgba(15,15,17,.92);
+    align-items:center; justify-content:center; z-index:999; cursor:zoom-out;
+  }
+  #xp-lightbox img{ max-width:92vw; max-height:92vh; box-shadow:0 8px 40px rgba(0,0,0,.5); }` : '';
+
+  const doc = `<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>${escapeHtml(title)}</title>
+<style>
+  :root{ --bg:#e9e9ea; }
+  *{ box-sizing:border-box; }
+  body{ margin:0; background:var(--bg); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif; color:#2b2b2e; }
+  header{ text-align:center; padding: 34px 20px 22px; }
+  header .xp-title{ font-size:22px; font-weight:700; margin:0 0 4px; }
+  header .xp-author{ font-size:13px; color:#85858a; margin:0; }
+  main{ max-width: 900px; margin: 0 auto; padding: 0 20px 60px; display:flex; flex-direction:column; gap:26px; }
+  .xp-pair{
+    display:flex; border-radius:6px; overflow:hidden; border:1px solid #cfcfd2;
+    box-shadow: 0 2px 10px rgba(0,0,0,.08);
+  }
+  .xp-slot{ flex:1; min-height:220px; display:flex; align-items:center; justify-content:center; overflow:hidden; }
+  .xp-slot img{ max-width:100%; max-height:100%; width:auto; height:auto; display:block; }
+  .xp-empty{ background: repeating-conic-gradient(#f2f2f3 0% 25%, #ffffff 0% 50%) 50% / 14px 14px; min-height:220px; }
+  .xp-text-row{ font-size:23px; font-weight:700; text-align:center; padding: 8px 10px 2px; }
+  footer{ text-align:center; color:#85858a; font-size:11px; padding: 10px 0 40px; }${lightboxCss}
+</style>
+</head>
+<body>
+<header>
+  <p class="xp-title">${escapeHtml(title)}</p>
+  <p class="xp-author">${escapeHtml(author)}</p>
+</header>
+<main>
+${pagesHtml}
+</main>
+<footer>Maquette réalisée avec l'atelier de mise en page photo</footer>
+${lightboxBlock}
+</body>
+</html>`;
+
+  const blob = new Blob([doc], { type: 'text/html' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = (title || 'maquette').replace(/[^a-z0-9\-_ ]/gi,'_') + '.html';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(()=> URL.revokeObjectURL(url), 5000);
+  toast('Export HTML téléchargé' + (thumbs ? ' (avec miniatures cliquables)' : ''));
+}
+
+/* Génère le PDF via l'impression du navigateur : on ouvre le document dans
+   un nouvel onglet stylé pour l'impression, puis on déclenche window.print().
+   L'utilisateur choisit "Enregistrer en PDF" comme destination — c'est la
+   méthode la plus fiable pour produire un vrai PDF sans dépendance externe. */
+function exportAsPdf(author, title, encoded, orientation, printWindow){
+  const pagesHtml = buildExportPagesHtml(encoded);
+  const isLandscape = orientation === 'landscape';
+
+  const printCss = isLandscape ? `
+    @page{ size: landscape; margin: 12mm; }
+    main{ display:block; }
+    .xp-pair{
+      page-break-after: always; break-after: page;
+      height: calc(100vh - 24mm);
+      margin: 0; box-shadow:none;
+    }
+    header{ page-break-after: avoid; }
+  ` : `
+    @page{ size: portrait; margin: 14mm; }
+    main{ display:flex; flex-direction:column; gap: 16mm; }
+    .xp-pair{
+      page-break-inside: avoid; break-inside: avoid;
+      box-shadow:none;
+    }
+  `;
+
+  const doc = `<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>${escapeHtml(title)}</title>
+<style>
+  *{ box-sizing:border-box; }
+  body{ margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif; color:#2b2b2e; }
+  header{ text-align:center; padding: 14px 10px 16px; }
+  header .xp-title{ font-size:19px; font-weight:700; margin:0 0 3px; }
+  header .xp-author{ font-size:12px; color:#666; margin:0; }
+  main{ max-width: 100%; margin:0 auto; padding: 0 10mm; }
+  .xp-pair{
+    display:flex; border-radius:4px; overflow:hidden; border:1px solid #ccc;
+  }
+  .xp-slot{ flex:1; min-height:180px; display:flex; align-items:center; justify-content:center; overflow:hidden; }
+  .xp-slot img{ max-width:100%; max-height:100%; width:auto; height:auto; display:block; }
+  .xp-empty{ background:#ffffff; min-height:180px; }
+  .xp-text-row{ font-size:20px; font-weight:700; text-align:center; padding: 6px 6px 2px; }
+  ${printCss}
+</style>
+</head>
+<body>
+<header>
+  <p class="xp-title">${escapeHtml(title)}</p>
+  <p class="xp-author">${escapeHtml(author)}</p>
+</header>
+<main>
+${pagesHtml}
+</main>
+<scr` + `ipt>
+  window.addEventListener('load', ()=> setTimeout(()=> window.print(), 300));
+</scr` + `ipt>
+</body>
+</html>`;
+
+  if(!printWindow || printWindow.closed){
+    toast("La fenêtre d'impression a été fermée ou bloquée — autorise les pop-ups pour ce site puis réessaie.", true);
+    return;
+  }
+  printWindow.document.open();
+  printWindow.document.write(doc);
+  printWindow.document.close();
+  toast('Choisis "Enregistrer en PDF" comme imprimante dans la fenêtre qui s\u2019ouvre', true);
+}
+
+/* ---------- Export "Images seules" (.zip, sans dépendance externe) ----------
+   Construit un fichier .zip minimal (méthode "store", sans compression du
+   zip lui-même — les images sont déjà compressées en JPEG si demandé) en
+   JS pur, pour rester un fichier HTML autonome sans librairie externe. */
+function crc32(buf){
+  if(!crc32.table){
+    const table = [];
+    for(let n=0; n<256; n++){
+      let c = n;
+      for(let k=0; k<8; k++){ c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1); }
+      table[n] = c;
+    }
+    crc32.table = table;
+  }
+  let crc = 0 ^ (-1);
+  for(let i=0; i<buf.length; i++){
+    crc = (crc >>> 8) ^ crc32.table[(crc ^ buf[i]) & 0xFF];
+  }
+  return (crc ^ (-1)) >>> 0;
+}
+
+function makeZip(files){ // files: [{name, data: Uint8Array}]
+  const encoder = new TextEncoder();
+  const localParts = [];
+  const centralParts = [];
+  let offset = 0;
+  const now = new Date();
+  const dosTime = ((now.getHours()<<11) | (now.getMinutes()<<5) | (now.getSeconds()>>1)) & 0xFFFF;
+  const dosDate = (((now.getFullYear()-1980)<<9) | ((now.getMonth()+1)<<5) | now.getDate()) & 0xFFFF;
+
+  files.forEach(f=>{
+    const nameBytes = encoder.encode(f.name);
+    const data = f.data;
+    const crc = crc32(data);
+    const size = data.length;
+
+    const localHeader = new DataView(new ArrayBuffer(30));
+    localHeader.setUint32(0, 0x04034b50, true);
+    localHeader.setUint16(4, 20, true);
+    localHeader.setUint16(6, 0, true);
+    localHeader.setUint16(8, 0, true);
+    localHeader.setUint16(10, dosTime, true);
+    localHeader.setUint16(12, dosDate, true);
+    localHeader.setUint32(14, crc, true);
+    localHeader.setUint32(18, size, true);
+    localHeader.setUint32(22, size, true);
+    localHeader.setUint16(26, nameBytes.length, true);
+    localHeader.setUint16(28, 0, true);
+    localParts.push(new Uint8Array(localHeader.buffer), nameBytes, data);
+
+    const centralHeader = new DataView(new ArrayBuffer(46));
+    centralHeader.setUint32(0, 0x02014b50, true);
+    centralHeader.setUint16(4, 20, true);
+    centralHeader.setUint16(6, 20, true);
+    centralHeader.setUint16(8, 0, true);
+    centralHeader.setUint16(10, 0, true);
+    centralHeader.setUint16(12, dosTime, true);
+    centralHeader.setUint16(14, dosDate, true);
+    centralHeader.setUint32(16, crc, true);
+    centralHeader.setUint32(20, size, true);
+    centralHeader.setUint32(24, size, true);
+    centralHeader.setUint16(28, nameBytes.length, true);
+    centralHeader.setUint16(30, 0, true);
+    centralHeader.setUint16(32, 0, true);
+    centralHeader.setUint16(34, 0, true);
+    centralHeader.setUint16(36, 0, true);
+    centralHeader.setUint32(38, 0, true);
+    centralHeader.setUint32(42, offset, true);
+    centralParts.push(new Uint8Array(centralHeader.buffer), nameBytes);
+
+    offset += 30 + nameBytes.length + size;
+  });
+
+  const centralSize = centralParts.reduce((a,b)=> a + b.length, 0);
+  const centralOffset = offset;
+
+  const endRecord = new DataView(new ArrayBuffer(22));
+  endRecord.setUint32(0, 0x06054b50, true);
+  endRecord.setUint16(4, 0, true);
+  endRecord.setUint16(6, 0, true);
+  endRecord.setUint16(8, files.length, true);
+  endRecord.setUint16(10, files.length, true);
+  endRecord.setUint32(12, centralSize, true);
+  endRecord.setUint32(16, centralOffset, true);
+  endRecord.setUint16(20, 0, true);
+
+  return new Blob([...localParts, ...centralParts, new Uint8Array(endRecord.buffer)], { type:'application/zip' });
+}
+
+/* Exporte les photos utilisées (pas le stock) comme fichiers individuels
+   dans un .zip, numérotés dans l'ordre de la maquette — pratique pour les
+   intégrer telles quelles dans une page vitrine d'un site perso, sans
+   passer par le fichier de sauvegarde JSON. Si des miniatures ont été
+   demandées, elles sont ajoutées dans un sous-dossier "miniatures/" avec
+   le même nom de fichier (+ suffixe -mini), pour affichage en galerie —
+   avec les grandes versions à charger seulement au clic. Un fichier
+   ordre.json (hors .zip nommé JSON de sauvegarde) décrit l'ordre et les
+   titres, pour faciliter l'intégration sur le site. */
+async function exportAsImagesZip(title, encoded, thumbs){
+  el('#export-progress-text').textContent = 'Préparation du dossier zip…';
+  const files = [];
+  const manifestEntries = [];
+  let rowCounter = 0;
+
+  for(const row of rows){
+    rowCounter++;
+    if(row.type === 'text'){
+      manifestEntries.push({ type: 'titre', rangee: rowCounter, texte: row.text || '' });
+      continue;
+    }
+    for(let s=0; s<row.slots.length; s++){
+      const id = row.slots[s];
+      if(!id || !encoded[id]) continue;
+      const p = photos[id];
+      const num = String(rowCounter).padStart(3,'0') + '-' + String(s+1);
+      const filename = num + '.jpg';
+
+      const resp = await fetch(encoded[id]);
+      const buf = new Uint8Array(await resp.arrayBuffer());
+      files.push({ name: filename, data: buf });
+
+      const entry = { type:'photo', fichier: filename, nomOriginal: p.name, rangee: rowCounter, position: s+1 };
+
+      if(thumbs && thumbs[id]){
+        const thumbName = 'miniatures/' + num + '-mini.jpg';
+        const thumbResp = await fetch(thumbs[id]);
+        const thumbBuf = new Uint8Array(await thumbResp.arrayBuffer());
+        files.push({ name: thumbName, data: thumbBuf });
+        entry.miniature = thumbName;
+      }
+
+      manifestEntries.push(entry);
+    }
+  }
+
+  const manifest = JSON.stringify({ titre: title, genere: new Date().toISOString(), elements: manifestEntries }, null, 2);
+  files.push({ name: 'ordre.json', data: new TextEncoder().encode(manifest) });
+
+  const zipBlob = makeZip(files);
+  const url = URL.createObjectURL(zipBlob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = (title || 'images-maquette').replace(/[^a-z0-9\-_ ]/gi,'_') + '.zip';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(()=> URL.revokeObjectURL(url), 5000);
+  toast((files.length-1) + ' fichier(s) exporté(s) dans le .zip (avec ordre.json pour l\u2019ordre et les titres)', true);
+}
+
+/* ---------- Sauvegarde/chargement complet (backup .photobook.json) ----------
+   Contrairement à la restauration automatique de session (qui redemande
+   l'accès aux dossiers d'origine), ce fichier est un vrai backup autonome :
+   il contient les photos elles-mêmes encodées en base64, donc il se
+   réimporte n'importe où, même sur un autre ordinateur, sans redemander
+   aucun accès disque. Fichier plus volumineux, mais complet. */
+
+/* ---------- Sauvegarde/chargement complet (backup .photobook.json) ----------
+   Contrairement à la restauration automatique de session (qui redemande
+   l'accès aux dossiers d'origine), ce fichier est un vrai backup autonome :
+   il contient les photos elles-mêmes encodées en base64, donc il se
+   réimporte n'importe où, même sur un autre ordinateur, sans redemander
+   aucun accès disque. Fichier plus volumineux, mais complet.
+
+   sessionSaveHandle retient le fichier créé (ou ouvert) PENDANT CETTE
+   SESSION : le bouton 💾 du bandeau l'écrase alors directement, sans
+   repasser par un sélecteur de fichier. Ce lien n'est jamais conservé
+   après un rechargement de page — seul un fichier créé ou ouvert dans
+   la session en cours peut être écrasé en un clic. */
+
+let sessionSaveHandle = null;
+let sessionSaveFileName = '';
+let lastSaveAt = null;
+
+function renderSaveTab(){
+  const statusEl = el('#save-tab-status');
+  if(sessionSaveHandle){
+    statusEl.textContent = 'Fichier actif pour cette session : ' + sessionSaveFileName
+      + (lastSaveAt ? ' — dernière sauvegarde à ' + lastSaveAt : ' — pas encore écrit sur le disque');
+    el('#btn-save-create').style.display = 'none';
+    el('#btn-save-overwrite').style.display = 'inline-block';
+  } else {
+    statusEl.textContent = "Aucun fichier de sauvegarde n'a encore été créé pendant cette session.";
+    el('#btn-save-create').style.display = 'inline-block';
+    el('#btn-save-overwrite').style.display = 'none';
+  }
+}
+
+function showSavePill(label, percent){
+  const pill = el('#save-pill');
+  pill.classList.add('show');
+  el('#save-pill-label').textContent = label;
+  el('#save-pill-fill').style.width = (percent || 0) + '%';
+}
+function updateSavePill(label, percent){
+  el('#save-pill-label').textContent = label;
+  el('#save-pill-fill').style.width = percent + '%';
+}
+function hideSavePillDelayed(){
+  clearTimeout(hideSavePillDelayed._t);
+  hideSavePillDelayed._t = setTimeout(()=>{
+    el('#save-pill').classList.remove('show');
+    el('#save-pill-fill').style.width = '0%';
+  }, 1600);
+}
+
+/* Construit le backup complet (photos en base64 + organisation) et l'écrit
+   directement dans le handle donné, sans redemander de sélecteur — c'est
+   ce qui permet l'écrasement "en un clic". Se déroule en arrière-plan
+   (l'utilisateur peut continuer à travailler pendant ce temps) et affiche
+   sa progression dans la pastille verte discrète en bas de l'écran. */
+async function performFullSave(handle){
+  if(!Object.keys(photos).length){ toast("Rien à sauvegarder pour l'instant."); return false; }
+  showSavePill('Préparation…', 0);
+  try{
+    const photosData = {};
+    const ids = Object.keys(photos);
+    for(let i=0; i<ids.length; i++){
+      const id = ids[i];
+      const p = photos[id];
+      updateSavePill('Sauvegarde… (' + (i+1) + '/' + ids.length + ')', Math.round(((i+1)/ids.length)*100));
+      const dataUrl = await new Promise(resolve=>{
+        const reader = new FileReader();
+        reader.onload = ()=> resolve(reader.result);
+        reader.onerror = ()=> resolve(null);
+        reader.readAsDataURL(p.file);
+      });
+      photosData[id] = { name: p.name, path: p.path || '', dataUrl };
+    }
+    const backup = {
+      type: 'photobook-maquette-backup', version: 2,
+      savedAt: new Date().toISOString(),
+      pageBg, stock, rows, photosData
+    };
+    const json = JSON.stringify(backup);
+    const writable = await handle.createWritable();
+    await writable.write(json);
+    await writable.close();
+    lastSaveAt = new Date().toLocaleTimeString('fr-FR', { hour:'2-digit', minute:'2-digit' });
+    updateSavePill('Sauvegarde effectuée ✓', 100);
+    hideSavePillDelayed();
+    renderSaveTab();
+    return true;
+  }catch(e){
+    console.error(e);
+    updateSavePill('Échec de la sauvegarde', 100);
+    hideSavePillDelayed();
+    toast("Échec de la sauvegarde — le fichier est peut-être trop volumineux pour la mémoire disponible.", true);
+    return false;
+  }
+}
+
+/* Filet de sécurité pour les navigateurs sans File System Access API
+   (donc sans écrasement en un clic possible) : téléchargement classique. */
+async function performClassicDownloadSave(suggestedName){
+  if(!Object.keys(photos).length){ toast("Rien à sauvegarder pour l'instant."); return; }
+  showSavePill('Préparation…', 0);
+  try{
+    const photosData = {};
+    const ids = Object.keys(photos);
+    for(let i=0; i<ids.length; i++){
+      const id = ids[i];
+      const p = photos[id];
+      updateSavePill('Sauvegarde… (' + (i+1) + '/' + ids.length + ')', Math.round(((i+1)/ids.length)*100));
+      const dataUrl = await new Promise(resolve=>{
+        const reader = new FileReader();
+        reader.onload = ()=> resolve(reader.result);
+        reader.onerror = ()=> resolve(null);
+        reader.readAsDataURL(p.file);
+      });
+      photosData[id] = { name: p.name, path: p.path || '', dataUrl };
+    }
+    const backup = {
+      type: 'photobook-maquette-backup', version: 2,
+      savedAt: new Date().toISOString(),
+      pageBg, stock, rows, photosData
+    };
+    const json = JSON.stringify(backup);
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = suggestedName;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=> URL.revokeObjectURL(url), 5000);
+    lastSaveAt = new Date().toLocaleTimeString('fr-FR', { hour:'2-digit', minute:'2-digit' });
+    updateSavePill('Téléchargement lancé ✓', 100);
+    hideSavePillDelayed();
+  }catch(e){
+    console.error(e);
+    updateSavePill('Échec de la sauvegarde', 100);
+    hideSavePillDelayed();
+    toast("Échec de la sauvegarde.", true);
+  }
+}
+
+/* Bouton 💾 du bandeau du haut : écrasement direct si un fichier existe déjà
+   pour cette session, sinon renvoi vers l'onglet Sauvegarde pour en créer un. */
+el('#btn-backup-save').addEventListener('click', async ()=>{
+  if(sessionSaveHandle){
+    await performFullSave(sessionSaveHandle);
+  } else {
+    switchView('save');
+    toast("Crée d'abord le fichier de sauvegarde depuis cet onglet — ensuite, ce bouton l'écrasera directement.", true);
+  }
+});
+
+el('#btn-save-create').addEventListener('click', async ()=>{
+  if(!Object.keys(photos).length){ toast('Ajoute des photos avant de créer une sauvegarde.'); return; }
+  const dateTag = new Date().toISOString().slice(0,10);
+  const suggestedName = 'maquette-backup-' + dateTag + '.photobook.json';
+
+  if(window.showSaveFilePicker){
+    let handle;
+    try{
+      handle = await window.showSaveFilePicker({
+        suggestedName,
+        types: [{ description: 'Sauvegarde de maquette', accept: {'application/json': ['.json']} }]
+      });
+    }catch(e){ return; }
+    sessionSaveHandle = handle;
+    sessionSaveFileName = handle.name;
+    renderSaveTab();
+    await performFullSave(handle);
+  } else {
+    await performClassicDownloadSave(suggestedName);
+    toast("Ton navigateur ne permet pas l'écrasement en un clic — chaque sauvegarde retéléchargera un nouveau fichier.", true);
+  }
+});
+
+el('#btn-save-overwrite').addEventListener('click', async ()=>{
+  if(!sessionSaveHandle) return;
+  await performFullSave(sessionSaveHandle);
+});
+
+/* Charge un fichier de sauvegarde (nouveau format "rows" ou ancien format
+   "pairs" — voir migrateToRows) et reconstruit tout l'état de l'application. */
+async function loadBackupFile(file){
+  if(Object.keys(photos).length || rows.length){
+    const ok = confirm("Charger cette sauvegarde va remplacer tout ce qui est actuellement ouvert dans l'application. Continuer ?");
+    if(!ok) return false;
+  }
+  try{
+    const text = await file.text();
+    const backup = JSON.parse(text);
+    if(backup.type !== 'photobook-maquette-backup' || !backup.photosData){
+      toast("Ce fichier ne semble pas être une sauvegarde valide de cette application.", true);
+      return false;
+    }
+
+    // Repartir de zéro proprement (libère les anciennes miniatures en mémoire)
+    Object.values(photos).forEach(p=>{
+      if(p.thumbUrl) URL.revokeObjectURL(p.thumbUrl);
+      if(p.fullUrl) URL.revokeObjectURL(p.fullUrl);
+    });
+    photos = {}; stock = []; rows = []; history = []; redoStack = [];
+
+    const idRemap = {};
+    const ids = Object.keys(backup.photosData);
+    for(let i=0; i<ids.length; i++){
+      const oldId = ids[i];
+      const meta = backup.photosData[oldId];
+      if(!meta.dataUrl) continue;
+      const resp = await fetch(meta.dataUrl);
+      const blob = await resp.blob();
+      const restoredFile = new File([blob], meta.name, { type: blob.type });
+      const thumbUrl = await makeThumb(restoredFile);
+      const newId = genId();
+      photos[newId] = {
+        id: newId, name: meta.name, path: meta.path || '',
+        dirKey: null, handle: null, dirHandle: null,
+        file: restoredFile, thumbUrl, fullUrl: null
+      };
+      idRemap[oldId] = newId;
+    }
+
+    stock = (backup.stock || []).map(oldId => idRemap[oldId]).filter(Boolean);
+    const rowsRaw = migrateToRows(backup);
+    rows = rowsRaw.map(row=>{
+      if(row.type === 'text') return { type:'text', text: row.text || '' };
+      return { type:'photos', slots: (row.slots || []).map(oldId => oldId ? (idRemap[oldId] || null) : null) };
+    });
+    pageBg = backup.pageBg || '#ffffff';
+
+    renderAll();
+    saveStructure();
+    toast('Sauvegarde chargée : ' + ids.length + ' photo(s), ' + rows.length + ' rangée(s).');
+    return true;
+  }catch(e){
+    console.error(e);
+    toast("Impossible de lire ce fichier de sauvegarde.", true);
+    return false;
+  }
+}
+
+/* Charger un fichier existant : on utilise le sélecteur de fichier classique
+   (<input type="file">), qui fonctionne partout de façon fiable — contrairement
+   à showOpenFilePicker(), qui peut être silencieusement bloqué selon le
+   navigateur ou la façon dont la page a été ouverte (fichier local, etc.).
+   Si showOpenFilePicker est disponible, on tente ensuite, en plus, de
+   récupérer un accès en écriture sur CE MÊME fichier pour permettre
+   l'écrasement en un clic — mais ça reste une bonification, jamais un
+   prérequis pour pouvoir charger la sauvegarde. */
+async function triggerBackupLoad(){
+  el('#backup-input').click();
+}
+
+el('#btn-backup-load').addEventListener('click', triggerBackupLoad);
+el('#btn-save-load-2').addEventListener('click', triggerBackupLoad);
+el('#backup-input').addEventListener('change', async e=>{
+  const file = e.target.files[0];
+  e.target.value = '';
+  if(!file) return;
+  await loadBackupFile(file);
+});
+
+/* ---------- Réinitialiser ---------- */
+
+el('#btn-reset').addEventListener('click', ()=>{
+  if(!confirm('Tout effacer (photos, rangées, ordre) ? Cette action est irréversible.\n\n(Rassure-toi : ceci n\'efface jamais rien sur ton disque dur, uniquement l\'organisation dans cette application.)')) return;
+  Object.values(photos).forEach(p=>{
+    if(p.thumbUrl) URL.revokeObjectURL(p.thumbUrl);
+    if(p.fullUrl) URL.revokeObjectURL(p.fullUrl);
+  });
+  photos = {}; stock = []; rows = []; nextId = 1; pageBg = '#ffffff';
+  history = []; redoStack = [];
+  sessionSaveHandle = null; sessionSaveFileName = ''; lastSaveAt = null;
+  renderSaveTab();
+  clearSavedStructure();
+  renderAll();
+});
+
+/* ---------- Restauration de session au démarrage ----------
+   On ne restaure JAMAIS automatiquement sans action de l'utilisateur :
+   le navigateur exige de toute façon une confirmation explicite pour
+   ré-accéder à un dossier déjà autorisé. On affiche donc un bandeau
+   "Reprendre la session précédente ?" si une sauvegarde existe. */
+
+async function attemptRestore(){
+  const saved = loadSavedStructure();
+  if(!saved || !saved.photosMeta || !Object.keys(saved.photosMeta).length) return;
+
+  // IMPORTANT : requestPermission() sur un dossier exige d'être appelé
+  // directement depuis un clic utilisateur (Chrome l'exige pour des
+  // raisons de sécurité). Un confirm() ne compte pas comme un vrai geste
+  // utilisateur pour cette API — d'où "accès refusé" alors que tu avais
+  // bien cliqué "OK". On affiche donc un bandeau avec un vrai bouton, et
+  // toute la restauration se déclenche depuis SON clic à lui.
+  el('#restore-banner-text').textContent =
+    'Session précédente trouvée : ' + Object.keys(saved.photosMeta).length + ' photo(s), '
+    + migrateToRows(saved).length + ' rangée(s).';
+  el('#restore-banner').style.display = 'flex';
+
+  el('#restore-dismiss').onclick = ()=>{
+    el('#restore-banner').style.display = 'none';
+  };
+  el('#restore-accept').onclick = async ()=>{
+    el('#restore-banner').style.display = 'none';
+    await runRestore(saved);
+  };
+}
+
+async function runRestore(saved){
+  const dirHandles = await loadDirHandles(); // { dirKey: FileSystemDirectoryHandle }
+  if(!Object.keys(dirHandles).length){
+    toast("Aucun dossier sauvegardé n'a pu être retrouvé — réimporte tes photos.", true);
+    return;
+  }
+
+  // Redemander la permission pour chaque dossier connu. Ce code s'exécute
+  // maintenant directement depuis le clic sur "Reprendre la session",
+  // donc Chrome autorise bien l'affichage du popup de confirmation.
+  const grantedDirs = {};
+  const refusedKeys = [];
+  for(const key of Object.keys(dirHandles)){
+    const handle = dirHandles[key];
+    try{
+      let perm = await handle.queryPermission({ mode: 'read' });
+      if(perm !== 'granted') perm = await handle.requestPermission({ mode: 'read' });
+      if(perm === 'granted') grantedDirs[key] = handle;
+      else refusedKeys.push(key);
+    }catch(e){
+      console.warn('Permission refusée pour', key, e);
+      refusedKeys.push(key);
+    }
+  }
+  if(!Object.keys(grantedDirs).length){
+    toast("Accès refusé ou dossier introuvable — impossible de restaurer les photos automatiquement. Réimporte-les avec \"+ Ajouter un dossier\".", true);
+    return;
+  }
+
+  // Ré-explorer chaque dossier accordé pour retrouver les fichiers par chemin
+  toast('Reconnexion aux dossiers en cours…', true);
+  const filesByPath = {}; // dirKey -> { relPath: File }
+  for(const key of Object.keys(grantedDirs)){
+    const files = [];
+    const handleMap = new Map();
+    const pathMap = new Map();
+    try{
+      await walkDirectory(grantedDirs[key], files, handleMap, pathMap);
+    }catch(e){ console.warn('Exploration impossible pour', key, e); continue; }
+    const map = {};
+    files.forEach(f=>{
+      const p = pathMap.get(f);
+      if(p) map[p] = { file: f, handle: handleMap.get(f) };
+    });
+    filesByPath[key] = map;
+  }
+
+  // Reconstruire photos/stock/rows en ré-associant chaque entrée sauvegardée
+  // au fichier retrouvé sur le disque, via son chemin relatif exact.
+  const idRemap = {}; // ancien id sauvegardé -> nouveau id généré cette session
+  let missing = 0;
+  for(const oldId of Object.keys(saved.photosMeta)){
+    const meta = saved.photosMeta[oldId];
+    const dirFiles = meta.dirKey ? filesByPath[meta.dirKey] : null;
+    const match = dirFiles ? dirFiles[meta.path] : null;
+    if(!match){ missing++; continue; }
+    try{
+      const thumbUrl = await makeThumb(match.file);
+      const newId = genId();
+      photos[newId] = {
+        id: newId, name: meta.name, path: meta.path, dirKey: meta.dirKey,
+        handle: match.handle, dirHandle: grantedDirs[meta.dirKey],
+        file: match.file, thumbUrl, fullUrl: null
+      };
+      idRemap[oldId] = newId;
+    }catch(e){ missing++; }
+  }
+
+  stock = (saved.stock || []).map(oldId => idRemap[oldId]).filter(Boolean);
+  const rowsRaw = migrateToRows(saved);
+  rows = rowsRaw.map(row=>{
+    if(row.type === 'text') return { type:'text', text: row.text || '' };
+    return { type:'photos', slots: (row.slots || []).map(oldId => oldId ? (idRemap[oldId] || null) : null) };
+  });
+  pageBg = saved.pageBg || '#ffffff';
+
+  renderAll();
+  if(missing){
+    toast(missing + ' photo(s) n\'ont pas pu être retrouvées (déplacées/renommées sur le disque).', true);
+  } else {
+    toast('Session restaurée.');
+  }
+}
+
+/* ---------- Rendu global ---------- */
+
+function renderAll(){
+  renderStock();
+  renderBoard();
+  renderScroll();
+  refreshNamesIfOpen();
+}
+
+renderAll();
+attemptRestore();
+</script>
+</body>
+</html>

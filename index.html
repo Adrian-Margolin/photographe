@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Adrian Margolin — Photographe</title>
+<meta name="description" content="Adrian Margolin, photographe et vidéaste basé à Obernai, Strasbourg, Metz.">
+<link rel="icon" type="image/svg+xml" href="assets/img/favicon.svg">
+<link rel="stylesheet" href="assets/css/style.css">
+<link rel="stylesheet" href="assets/css/home.css">
+</head>
+<body>
+<script src="assets/js/transition.js"></script>
+<script src="assets/js/i18n.js"></script>
+
+<nav class="site-nav">
+  <a class="mark" href="index.html">Adrian Margolin</a>
+  <div class="nav-links-wrap">
+  <ul>
+    <li><a href="index.html" aria-current="page"><span data-en="Home">Accueil</span></a></li>
+    <li><a href="series.html"><span data-en="Series">Séries</span></a></li>
+    <li><a href="apropos.html"><span data-en="About">Sur moi</span></a></li>
+    <li><a href="contact.html"><span data-en="Contact">Contact</span></a></li>
+  </ul>
+  <div class="nav-right">
+    <div class="lang-toggle">
+      <button type="button" data-lang-btn="fr"><svg class="flag" viewBox="0 0 30 20" aria-hidden="true"><rect width="10" height="20" fill="#0055A4"/><rect x="10" width="10" height="20" fill="#fff"/><rect x="20" width="10" height="20" fill="#EF4135"/></svg><span>FR</span></button>
+      <span class="sep">/</span>
+      <button type="button" data-lang-btn="en"><svg class="flag" viewBox="0 0 60 30" aria-hidden="true"><rect width="60" height="30" fill="#00247d"/><path d="M0,0 L60,30 M60,0 L0,30" stroke="#fff" stroke-width="6"/><path d="M0,0 L60,30 M60,0 L0,30" stroke="#cf142b" stroke-width="2"/><path d="M30,0 V30 M0,15 H60" stroke="#fff" stroke-width="10"/><path d="M30,0 V30 M0,15 H60" stroke="#cf142b" stroke-width="6"/></svg><span>EN</span></button>
+    </div>
+  </div>
+  </div>
+</nav>
+
+<main>
+
+  <figure class="hero-plate" style="background-image:url('photos/portfolio/035-1.jpg');">
+    <div class="hero-overlay">
+      <p class="role" data-en="Photographer &amp; videographer — Obernai, Strasbourg, Metz">Photographe et vidéaste — Obernai, Strasbourg, Metz</p>
+      <div class="hero-quote-row">
+        <blockquote class="epigraph">
+          « L'odeur des roses, faible, grâce<br>
+          Au vent léger d'été qui passe, »
+          <span class="attrib">Paul Verlaine</span>
+        </blockquote>
+        <img class="hero-portrait" src="photos/adrian-portrait-clock.jpg" alt="Adrian Margolin, en forêt" data-en-alt="Adrian Margolin, in the forest">
+      </div>
+      <p class="bio" data-en="Adrian Margolin, originally from Kharkiv and deeply inspired by that city's powerful photographic school, turns his eye to Alsace. Nourished by painting, arthouse cinema and art history in general — all territories where I keep searching for what makes an image beautiful and gives meaning to creation.">Adrian Margolin, originaire de Kharkiv et grandement inspiré par l'école photographique puissante de cette ville, pose le regard sur l'Alsace. Nourri par la peinture, le cinéma d'auteur et l'histoire de l'art en général – autant de terrains où je continue de chercher ce qui fait la beauté d'une image et le sens de la création.</p>
+    </div>
+  </figure>
+
+  <section class="contact-sheet container" id="series-teasers"></section>
+
+  <section class="container closing-line">
+    <p data-en="Available for commissions — portraits, events, personal projects.">Disponible pour des commandes — portraits, événements, projets personnels.</p>
+    <a class="link-arrow" href="contact.html" data-en="Let's talk about your project →">Discutons de votre projet →</a>
+  </section>
+
+</main>
+
+<footer class="site-footer container">
+  <div class="foot-row">
+    <span>© <span id="year"></span> Adrian Margolin</span>
+    <span><a href="mailto:tourmente@ukr.net">tourmente@ukr.net</a> — <a href="tel:+33779325436">07 79 32 54 36</a></span>
+  </div>
+</footer>
+
+<script src="assets/js/main.js"></script>
+<script src="assets/js/sprite-chase.js"></script>
+<script>
+  (function(){
+    var SERIES = [
+      { id:'portraits', title:'Portraits', titleEn:'Portraits', files:['002','005','009','013'] }
+    ];
+    var wrap = document.getElementById('series-teasers');
+    SERIES.forEach(function(s){
+      var block = document.createElement('div');
+      block.className = 'series-block';
+      var head = document.createElement('div');
+      head.className = 'section-head';
+      head.innerHTML = '<h2 style="font-size:1.1rem; font-family: var(--font-body); font-weight:500;">' +
+        '<span data-en="Series">Série</span> — <span data-en="' + s.titleEn + '">' + s.title + '</span></h2>' +
+        '<a class="link-arrow" href="series.html" data-en="All series →">Toutes les séries →</a>';
+      block.appendChild(head);
+      var viewport = document.createElement('div');
+      viewport.className = 'teaser-viewport';
+      var strip = document.createElement('a');
+      strip.className = 'teaser-row';
+      strip.href = 'series.html#viewer:' + s.id;
+      s.files.forEach(function(f){
+        var fig = document.createElement('div');
+        fig.className = 'frame';
+        fig.innerHTML = '<img src="photos/teaser/teaser-' + f + '.jpg" alt="" loading="lazy">';
+        strip.appendChild(fig);
+      });
+      viewport.appendChild(strip);
+      var fade = document.createElement('div');
+      fade.className = 'teaser-fade';
+      viewport.appendChild(fade);
+      block.appendChild(viewport);
+      wrap.appendChild(block);
+
+      // Once the first 3 photos have loaded, clip the viewport so photos
+      // 1 and 2 show fully, photo 3 shows only its first half, and the
+      // fade covers exactly that trailing half — hinting there's more.
+      function sizeViewport(){
+        var rowH = strip.clientHeight;
+        var imgsIn = strip.querySelectorAll('img');
+        if (imgsIn.length < 3 || !rowH) return;
+        var w = [];
+        for (var k = 0; k < 3; k++){
+          var im = imgsIn[k];
+          if (!im.naturalWidth || !im.naturalHeight) return;
+          w.push(im.naturalWidth * (rowH / im.naturalHeight));
+        }
+        var cutoff = w[0] + w[1] + (w[2] / 2);
+        viewport.style.width = Math.round(cutoff) + 'px';
+        fade.style.width = Math.round(w[2] / 2) + 'px';
+      }
+      var imgs = strip.querySelectorAll('img');
+      var remaining = Math.min(3, imgs.length);
+      imgs.forEach(function(img, i){
+        if (i >= 3) return;
+        if (img.complete && img.naturalWidth) { remaining--; if (remaining <= 0) sizeViewport(); }
+        else img.addEventListener('load', function(){ remaining--; if (remaining <= 0) sizeViewport(); });
+      });
+      window.addEventListener('resize', function(){
+        viewport.style.width = '';
+        requestAnimationFrame(sizeViewport);
+      });
+    });
+    if (window.applyI18n) window.applyI18n(window.siteLang(), wrap);
+  })();
+</script>
+</body>
+</html>
