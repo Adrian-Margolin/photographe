@@ -36,6 +36,16 @@ var CARNETS = [
     descriptionEn: 'Shapes, materials, light.',
     src: 'embeds/abstraction.html',
     cover: 'photos/teaser/cover-abstraction.jpg'
+  },
+  {
+    id: 'normandie',
+    type: 'embed',
+    title: 'Normandie : coup de cœur, coup de vent',
+    titleEn: 'Normandy: Heartstruck, Windswept',
+    description: 'Côtes, ciels et lumière du Nord.',
+    descriptionEn: 'Coasts, skies and northern light.',
+    src: 'embeds/normandie.html',
+    cover: 'photos/teaser/cover-normandie.jpg'
   }
 ];
 
