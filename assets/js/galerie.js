@@ -41,7 +41,7 @@ var CARNETS = [
     id: 'normandie',
     type: 'embed',
     title: 'Normandie : coup de cœur, coup de vent',
-    titleEn: 'Normandy: Heartstruck, Windswept',
+    titleEn: 'Normandy: Love at First Gust',
     description: 'Côtes, ciels et lumière du Nord.',
     descriptionEn: 'Coasts, skies and northern light.',
     src: 'embeds/normandie.html',
